@@ -108,11 +108,11 @@ author:
   avatar           : "/assets/images/pscustomobject.jpg" # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
   bio              : "Systems and infrastructure engineer with 20+ years of experience across Windows, Linux and identity. I build automation that makes complex environments easier to run, maintain and understand."
   location         : "PID 0"
-  email            : "PsCustomObject@outlook.com"
+  email            : "SingularVector@tuta.com"
   links:
     #- label: "Email"
     #  icon: "fas fa-fw fa-envelope-square"
-    #  url: mailto:PsCustomObject@outlook.com
+    #  url: mailto:SingularVector@tuta.com
     - label: "Website"
       icon: "fas fa-fw fa-link"
       url: "https://singularvector.github.io/"
