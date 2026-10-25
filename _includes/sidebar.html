@@ -1,7 +1,12 @@
 {% assign locale = include.locale | default: site.locale %}
 {% if page.author_profile or layout.author_profile or page.sidebar %}
-  <div class="sidebar sticky">
-  {% if page.author_profile or layout.author_profile %}{% include author-profile.html locale=locale %}{% endif %}
+  <div class="sidebar sticky{% if page.collection == 'posts' %} sidebar--post{% endif %}">
+  {% if page.author_profile or layout.author_profile %}{% if page.collection == 'posts' %}
+    <div class="article-author">
+      <button class="article-author__toggle" type="button" aria-expanded="false" aria-controls="article-author-profile" hidden>About the author</button>
+      <div id="article-author-profile">{% include author-profile.html locale=locale %}</div>
+    </div>
+    {% else %}{% include author-profile.html locale=locale %}{% endif %}{% endif %}
   {% if page.sidebar %}
     {% for s in page.sidebar %}
       {% if s.image %}

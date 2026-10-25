@@ -1,0 +1,30 @@
+{% comment %}Prefer shared tags, then categories; fill remaining slots with recent posts.{% endcomment %}
+{% assign article_recommendations = '' | split: ',' %}
+{% assign article_recommendation_ids = '' | split: ',' %}
+{% assign article_passes = 'tags,categories,recent' | split: ',' %}
+{% for article_pass in article_passes %}
+  {% for candidate in site.posts %}
+    {% if article_recommendations.size >= 3 %}{% break %}{% endif %}
+    {% if candidate.id == page.id or candidate.hidden == true %}{% continue %}{% endif %}
+    {% if article_recommendation_ids contains candidate.id %}{% continue %}{% endif %}
+    {% assign article_matches = false %}
+    {% if article_pass == 'recent' %}{% assign article_matches = true %}{% else %}
+      {% for article_term in page[article_pass] %}
+        {% if candidate[article_pass] contains article_term %}{% assign article_matches = true %}{% break %}{% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if article_matches %}
+      {% assign article_recommendations = article_recommendations | push: candidate %}
+      {% assign article_recommendation_ids = article_recommendation_ids | push: candidate.id %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+{% if article_recommendations.size > 0 %}
+<section class="page__related article-related" aria-labelledby="article-related-title">
+  {% include before-related.html %}
+  <h2 id="article-related-title" class="page__related-title">Continue reading</h2>
+  <div class="grid__wrapper">
+    {% for post in article_recommendations %}{% include archive-single.html locale=locale type="grid" %}{% endfor %}
+  </div>
+</section>
+{% endif %}

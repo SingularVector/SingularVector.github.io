@@ -27,3 +27,7 @@
     <script src="{{ script | relative_url }}"></script>
   {% endfor %}
 {% endif %}
+
+{% if page.collection == 'posts' %}
+<script src="{{ '/assets/js/article-reading.js' | relative_url }}" defer></script>
+{% endif %}

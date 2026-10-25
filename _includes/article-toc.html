@@ -1,0 +1,10 @@
+{% if content contains '<h2' or content contains '<h3' %}
+<aside class="sidebar__right {% if page.toc_sticky %}sticky{% endif %} article-toc-wrap">
+  <details class="toc article-toc" open>
+    <summary class="nav__title">{{ page.toc_label | default: 'On this page' }}</summary>
+    <nav aria-label="Table of contents">
+      {% include toc.html sanitize=true html=content h_min=2 h_max=3 class="toc__menu" skip_no_ids=true %}
+    </nav>
+  </details>
+</aside>
+{% endif %}

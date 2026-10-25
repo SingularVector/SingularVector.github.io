@@ -1,0 +1,6 @@
+{% if page.previous or page.next %}
+<nav class="article-pagination" aria-label="Previous and next articles">
+  {% if page.previous %}<a href="{{ page.previous.url | relative_url }}"><span>Previous article</span><strong>{{ page.previous.title | markdownify | strip_html }}</strong></a>{% endif %}
+  {% if page.next %}<a href="{{ page.next.url | relative_url }}"><span>Next article</span><strong>{{ page.next.title | markdownify | strip_html }}</strong></a>{% endif %}
+</nav>
+{% endif %}
