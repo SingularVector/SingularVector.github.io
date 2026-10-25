@@ -1,0 +1,20 @@
+{% assign article_date_format = page.date_format | default: site.date_format | default: "%B %-d, %Y" %}
+<header class="article-header">
+  <a class="article-header__back" href="{{ '/articles/' | relative_url }}">All articles</a>
+  {% unless include.hide_title %}
+  <h1 id="page-title" class="page__title p-name" itemprop="headline">{{ page.title | markdownify | remove: '<p>' | remove: '</p>' }}</h1>
+  {% if page.description %}<p class="article-header__description">{{ page.description | markdownify | strip_html }}</p>{% endif %}
+  {% endunless %}
+  <p class="article-header__meta">
+    {% if page.date %}<span>Published <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: article_date_format }}</time></span>{% endif %}
+    {% assign published_day = page.date | date: '%Y-%m-%d' %}
+    {% assign modified_day = page.last_modified_at | date: '%Y-%m-%d' %}
+    {% if page.last_modified_at and modified_day != published_day %}<span>Updated <time class="dt-updated" datetime="{{ page.last_modified_at | date_to_xmlschema }}">{{ page.last_modified_at | date: article_date_format }}</time></span>{% endif %}
+    {% if page.read_time %}
+      {% assign article_words = content | strip_html | number_of_words %}
+      {% assign article_wpm = page.words_per_minute | default: site.words_per_minute | default: 200 %}
+      {% assign article_minutes = article_words | divided_by: article_wpm | at_least: 1 %}
+      <span>{{ article_minutes }} min read</span>
+    {% endif %}
+  </p>
+</header>

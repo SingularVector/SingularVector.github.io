@@ -29,7 +29,14 @@ layout: default
     {% if page.last_modified_at %}<meta itemprop="dateModified" content="{{ page.last_modified_at | date_to_xmlschema }}">{% endif %}
 
     <div class="page__inner-wrap">
-      {% unless page.header.overlay_color or page.header.overlay_image %}
+      {% if page.collection == 'posts' %}
+        {% if page.header.overlay_color or page.header.overlay_image %}
+          {% include article-header.html hide_title=true %}
+        {% else %}
+          {% include article-header.html %}
+        {% endif %}
+      {% else %}
+        {% unless page.header.overlay_color or page.header.overlay_image %}
         <header>
           {% if page.title -%}
           <h1 id="page-title" class="page__title p-name" itemprop="headline">
@@ -38,16 +45,21 @@ layout: default
           {%- endif %}
           {% include page__meta.html locale=locale %}
         </header>
-      {% endunless %}
+        {% endunless %}
+      {% endif %}
 
       <section class="page__content e-content" itemprop="text">
         {% if page.toc %}
+          {% if page.collection == 'posts' %}
+            {% include article-toc.html %}
+          {% else %}
           <aside class="sidebar__right {% if page.toc_sticky %}sticky{% endif %}">
             <nav class="toc" aria-label="Table of contents">
               <header><h4 class="nav__title"><i class="fas fa-{{ page.toc_icon | default: 'file-alt' }}"></i> {{ page.toc_label | default: site.data.ui-text[locale].toc_label | default: "On this page" }}</h4></header>
               {% include toc.html sanitize=true html=content h_min=1 h_max=6 class="toc__menu" skip_no_ids=true %}
             </nav>
           </aside>
+          {% endif %}
         {% endif %}
         {{ content }}
         {% if page.link %}<div><a href="{{ page.link }}" class="btn btn--primary">{{ site.data.ui-text[locale].ext_link_label | default: "Direct Link" }}</a></div>{% endif %}
@@ -58,12 +70,12 @@ layout: default
           <h4 class="page__meta-title">{{ site.data.ui-text[locale].meta_label }}</h4>
         {% endif %}
         {% include page__taxonomy.html locale=locale %}
-        {% include page__date.html locale=locale %}
+        {% unless page.collection == 'posts' %}{% include page__date.html locale=locale %}{% endunless %}
       </footer>
 
       {% if page.share %}{% include social-share.html locale=locale %}{% endif %}
 
-      {% include post_pagination.html locale=locale %}
+      {% if page.collection == 'posts' %}{% include article-pagination.html %}{% else %}{% include post_pagination.html locale=locale %}{% endif %}
     </div>
 
     {% if site.comments.provider and page.comments %}
@@ -79,7 +91,9 @@ layout: default
   </article>
 
   {% comment %}<!-- only show related on a post page when `related: true` -->{% endcomment %}
-  {% if page.id and page.related and site.related_posts.size > 0 %}
+  {% if page.collection == 'posts' and page.related %}
+    {% include article-related.html %}
+  {% elsif page.id and page.related and site.related_posts.size > 0 %}
     {% include page__related.html locale=locale posts=site.related_posts %}
   {% comment %}<!-- otherwise show recent posts if no related when `related: true` -->{% endcomment %}
   {% elsif page.id and page.related %}
