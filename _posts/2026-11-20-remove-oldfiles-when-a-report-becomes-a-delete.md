@@ -25,7 +25,9 @@ After [migrating the CSV policies]({% post_url 2026-11-16-remove-oldfiles-keepin
 
 ## Keep the Default Boring
 
-The new command takes one policy, using the same model as the reporting engine:
+The rebuild lives in the `RetentionEngine` PowerShell module. Its public commands handle scanning, CSV import, reporting and cleanup; filesystem and safety helpers stay private. You import the module as a unit, rather than loading whichever support script happens to be needed next.
+
+`Invoke-RetentionCleanup` is the cleanup entry point. It takes one policy, using the same model as the reporting engine:
 
 ```powershell
 $result = Invoke-RetentionCleanup -Policy $policy
@@ -97,14 +99,15 @@ The rebuilt engine currently returns structured results; it does not call `New-L
 
 ## What We Actually Exercised
 
-The combined local suite passed **99 checks, with three platform-dependent skips**, on macOS with PowerShell 7.6.7 and Pester 5.7.1. Real deletions targeted disposable fixtures only.
+The combined local suite passed **104 checks, with three platform-dependent skips**, on macOS with PowerShell 7.6.7 and Pester 5.7.1. Real deletions targeted disposable fixtures only.
 
-The new checks cover the read-only default, preview, explicit removal, incomplete scans, failure accounting, changed metadata, new ignore markers and directory substitution. Controlled mocks also verify the second check around confirmation. Windows locks, ACLs and a network share still need their own environment-specific checks.
+The checks cover the read-only default, preview, explicit removal, incomplete scans, failure accounting, changed metadata, new ignore markers and directory substitution. Package checks also confirm that only the public commands are exported and that a copied module works in a fresh PowerShell session outside the repository. Controlled mocks also verify the second check around confirmation. Windows locks, ACLs and a network share still need their own environment-specific checks.
 
 We now have a path from policy to observed candidates to an explicit action, with a result that says what happened. Before centralising that across more machines, I want to keep that chain understandable. A central database will not make an unexplained deletion any easier to defend.
 
 ### Further Reading
 
+- [Module structure and distribution](https://github.com/SingularVector/Remove-Old-Files/blob/main/docs/module-structure.md)
 - [Controlled cleanup contract](https://github.com/SingularVector/Remove-Old-Files/blob/main/docs/controlled-cleanup.md)
 - [Find First, Delete Later]({% post_url 2026-11-14-find-first-delete-later-retention-engine %})
 - [PowerShell Logging: New-LogEntry Revisited]({% post_url 2026-10-24-PowerShell-New-LogEntry-Revised %})
