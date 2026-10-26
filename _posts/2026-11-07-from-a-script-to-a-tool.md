@@ -110,11 +110,15 @@ The script became a tool through a few ordinary improvements: someone could run 
 
 Future you, opening it before coffee, will appreciate that.
 
-## Putting This into Practice
+## Putting This into Practice: Rebuilding Remove-OldFiles
 
-There is a real project behind my interest in this: [Remove-OldFiles]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %}). In one of my previous companies, I used it to clean up logs from different automations, each with its own retention policy, and to support other teams with similar cleanup needs. The policies lived in a central CSV file.
+We have talked about explicit inputs, useful results, failure handling and tests. Let’s put those ideas to work on something that already solved a real problem.
 
-I am revisiting that project in a series of posts, starting with the behaviour we want to preserve and the assumptions we need to make explicit. First comes a report-only engine; CSV migration, controlled deletion and central policy storage will follow as the work develops. The implementation will stay in the [original repository](https://github.com/SingularVector/Remove-Old-Files), with the decisions and test results documented along the way.
+In [my original cleanup article]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %}), I started with deleting files older than a given number of days. That grew into [Remove-OldFiles](https://github.com/SingularVector/Remove-Old-Files), which I used at a previous company to manage logs from different automations, each with its own retention policy, and to support other teams with similar cleanup needs. A central CSV held the rules, and local ignore markers provided exceptions.
+
+It was useful. It also gives us something more interesting to examine than another example written specifically to make the explanation work. What should we preserve? Which assumptions need to become explicit? How do we prove that the files selected for cleanup are actually the ones the policy intended?
+
+That is the next series: rebuilding the solution in the original repository, one tested step at a time. We will start by defining the rules and building a report-only engine, then work through CSV migration, controlled deletion and, later, central policy storage and execution history. The posts will follow the decisions and results, including the parts where the old code gives me something to reconsider :)
 
 ### Further Reading
 
