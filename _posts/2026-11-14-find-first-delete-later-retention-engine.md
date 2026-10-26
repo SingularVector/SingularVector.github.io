@@ -17,7 +17,7 @@ A file appeared in the report. Before asking whether we can delete it, I want to
 
 Was it old enough? Did recursion include that directory deliberately? Was there an ignore marker higher up? And did the scan finish, or are we looking at the accessible half of the filesystem?
 
-The first milestone in rebuilding [Remove-OldFiles](https://github.com/SingularVector/Remove-Old-Files) is designed to answer those questions. It returns one report and changes no files. Deletion is not an option hidden behind a switch; it is not implemented yet.
+The first milestone in rebuilding [Remove-OldFiles](https://github.com/SingularVector/Remove-Old-Files) is designed to answer those questions. The scanner returns one report and changes no files. Deletion is not an option hidden behind a switch; it is not implemented yet.
 
 ---
 
@@ -94,11 +94,37 @@ The report returns objects, not preformatted tables or log strings. Callers deci
 
 ---
 
+## Give the Report to Someone Who Does Not Live in PowerShell
+
+Objects are useful for automation. Asking another team to read them in a terminal is a different proposition.
+
+A separate exporter turns the same result into a standalone HTML file with embedded CSS:
+
+```powershell
+Export-RetentionReportHtml -Report $report -LiteralPath ./retention-report.html
+```
+
+Choose an output directory outside the scanned root. Existing files require `-Force`; `-WhatIf` previews the export without writing it. The scan itself remains independent of presentation.
+
+The report puts the outcome first, followed by candidate counts and potential space, the policy and exact cutoff, errors, candidate details and exclusions. A partial scan should be the first thing someone notices, not a footnote underneath an encouraging storage figure.
+
+![A synthetic HTML retention report prominently marks an incomplete scan, two candidates, 82 MiB of observed candidate data and one error. No files were deleted.]({{ '/assets/images/retention-rebuild/html-report-preview.png' | relative_url }})
+
+*Invented sample data, not a production result. The incomplete status matters as much as the candidate total.*
+
+[Open the complete sample report]({{ '/assets/reports/retention-rebuild/sample-retention-report.html' | relative_url }}). It works offline, without external fonts, scripts or libraries. Paths and error text are HTML-escaped, and the file makes clear that no files were deleted. Potential bytes describe observed file lengths, not guaranteed free space.
+
+That gives another team something they can review without my being there to translate the output. Which was rather the point of turning a script into a tool.
+
+---
+
 ## What We Actually Tested
 
-The local run used PowerShell 7.6.7 and Pester 5.7.1 on macOS: **40 checks passed, three were skipped**.
+The local run used PowerShell 7.6.7 and Pester 5.7.1 on macOS: **61 checks passed, three were skipped**.
 
 The checks cover cutoff boundaries, recursion, protected descendants, hidden files, invalid policies, real symbolic links, repeatable output and unchanged fixture contents. Directory and metadata failures are injected at small filesystem boundaries, so we can verify partial-result behaviour without depending on an account that may bypass permission restrictions.
+
+Exporter checks also cover escaping, all four outcomes, output boundaries, overwrite protection and `-WhatIf`.
 
 The skipped checks concern Windows path rules, Windows junctions and a provisioned UNC share. A Windows/Linux/macOS workflow is prepared, but those hosted runs have not happened for this development milestone. Passing local tests is useful evidence, not a substitute for testing the environments we intend to support.
 
