@@ -20,7 +20,7 @@
   - Office 365
 - id: infrastructure
   title: Cloud & infrastructure
-  description: "Infrastructure operations and automation: Azure Automation, Windows configuration, virtualisation and a companion cloud engineering notebook."
+  description: "Infrastructure engineering across cloud and on-premises environments: automation, infrastructure as code, configuration, virtualisation and hands-on engineering notes."
   categories:
   - Azure
   - Windows
@@ -32,6 +32,6 @@
   - Python
 - id: git
   title: Git & version control
-  description: "Git repository maintenance: use .gitignore to keep generated files, local settings and other unwanted content out of version control."
+  description: "Practical Git and version-control workflows: repository hygiene, branches, remotes, merging and recovering from mistakes."
   categories:
   - git

@@ -9,6 +9,7 @@ layout: default
     {% assign intro = page.intro %}
     {% if page.topic_id %}{% assign topic = site.data.topics | where: "id", page.topic_id | first %}{% assign intro = topic.description %}{% endif %}
     {% if intro %}<p class="discovery-intro">{{ intro | escape }}</p>{% endif %}
+    {% if page.topic_id and page.topic_updated_at %}<p class="discovery-date">Updated <time datetime="{{ page.topic_updated_at | date: '%Y-%m-%d' }}">{{ page.topic_updated_at | date: '%-d %B %Y' }}</time></p>{% endif %}
   </header>
   {{ content }}
 </main>
