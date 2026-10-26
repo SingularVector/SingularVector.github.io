@@ -86,6 +86,8 @@ The batch revalidates the complete file before scanning. Every policy shares one
 
 Each result in `$batch.Reports` can use the existing HTML exporter. Keep the reports outside every configured cleanup root. We are still reporting, not deleting.
 
+For an unattended run, keep the import warnings and rejected source rows in the operational log too. Otherwise a correctly blocked batch can look like a job that simply found nothing to do.
+
 ---
 
 ## What We Checked

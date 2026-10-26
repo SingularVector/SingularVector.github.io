@@ -92,6 +92,8 @@ A marker-check failure stops inspection of that directory. It must not become pe
 
 The report returns objects, not preformatted tables or log strings. Callers decide how to present or persist them. `DeletedCount` is always zero in this milestone, regardless of how promising the candidate list looks.
 
+A report explains the inspection; a log helps trace the run that produced it. My [New-LogEntry]({% post_url 2026-10-24-PowerShell-New-LogEntry-Revised %}) article covers that side of the workflow. Keeping the two separate lets a wrapper log the run identifier, policy and errors without slipping diagnostic strings into the candidate records. The scanner itself does not call the logging function.
+
 ---
 
 ## Give the Report to Someone Who Does Not Live in PowerShell

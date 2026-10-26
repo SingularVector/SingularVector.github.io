@@ -48,7 +48,7 @@ Reviewing the current repository exposed a few mismatches:
 - Deletion counters can advance after nonterminating errors because the operation does not explicitly stop on error.
 - The description talks about creation time, while selection uses last-write time.
 
-There is also a mismatch between logging call sites and the embedded helper’s parameter names in the checked-in version. These are findings from reading today’s source, not a reconstruction of every revision or local adjustment used historically.
+There is also a mismatch between logging call sites and the embedded helper’s parameter names in the checked-in version. The logging function has evolved too; [New-LogEntry Revisited]({% post_url 2026-10-24-PowerShell-New-LogEntry-Revised %}) explains the current version, rather than assuming the embedded copy is interchangeable. These are findings from reading today’s source, not a reconstruction of every revision or local adjustment used historically.
 
 The point of this exercise is to turn those observations into explicit behaviour and checks. Rewriting the same assumptions in cleaner code would not be much of an improvement.
 

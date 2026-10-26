@@ -6,8 +6,230 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>Retention report — Partial</title>
 <style>
-:root{color-scheme:light;--ink:#172033;--muted:#4b596d;--line:#d8e1eb;--teal:#0c665c}
-*{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:var(--ink);font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1200px;margin:auto;padding:42px 28px 64px}.eyebrow{font-size:.8rem;letter-spacing:.14em;color:var(--teal);font-weight:750;text-transform:uppercase}h1{font-size:clamp(2rem,5vw,3.3rem);line-height:1.12;letter-spacing:-.035em;margin:12px 0 20px}h2{margin:0 0 14px;font-size:1.35rem}.notice{padding:20px 24px;border:1px solid var(--line);border-left:6px solid var(--teal);border-radius:12px;background:#fff}.notice h2{margin:0 0 5px}.notice p{margin:5px 0}.status-Partial{border-left-color:#a15b00;background:#fff8e8}.status-Failed{border-left-color:#b42318;background:#fff1f0}.status-Disabled{border-left-color:#586477;background:#edf1f6}.mode{font-weight:750}.report-label{padding:10px 14px;background:#e4edf3;border-radius:8px;font-weight:650}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0}.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}.card span{display:block;font-size:.85rem;color:var(--muted)}.card strong{display:block;font-size:1.75rem;overflow-wrap:anywhere;margin-top:6px}section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-top:20px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.9rem;table-layout:fixed}th,td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);overflow-wrap:anywhere}th{background:#edf3f7;font-weight:700}tbody tr:last-child td{border-bottom:0}p{overflow-wrap:anywhere}.caption,.empty,footer{color:var(--muted);font-size:.9rem}footer{margin-top:28px}@media(max-width:600px){main{padding:24px 14px}section{padding:16px}th,td{padding:9px 7px;font-size:.8rem}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media print{body{background:#fff}main{padding:0;max-width:none}.cards{grid-template-columns:repeat(5,1fr)}section,.card,.notice{break-inside:avoid;border-radius:0}thead{display:table-header-group}tr{break-inside:avoid}section{break-inside:auto}th,td{font-size:9pt}footer{font-size:9pt}}
+:root
+{
+    color-scheme:light;
+    --ink:#172033;
+    --muted:#4b596d;
+    --line:#d8e1eb;
+    --teal:#0c665c
+}
+*
+{
+    box-sizing:border-box
+}
+body
+{
+    margin:0;
+    background:#f3f6fa;
+    color:var(--ink);
+    font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+}
+main
+{
+    max-width:1200px;
+    margin:auto;
+    padding:42px 28px 64px
+}
+.eyebrow
+{
+    font-size:.8rem;
+    letter-spacing:.14em;
+    color:var(--teal);
+    font-weight:750;
+    text-transform:uppercase
+}
+h1
+{
+    font-size:clamp(2rem,5vw,3.3rem);
+    line-height:1.12;
+    letter-spacing:-.035em;
+    margin:12px 0 20px
+}
+h2
+{
+    margin:0 0 14px;
+    font-size:1.35rem
+}
+.notice
+{
+    padding:20px 24px;
+    border:1px solid var(--line);
+    border-left:6px solid var(--teal);
+    border-radius:12px;
+    background:#fff
+}
+.notice h2
+{
+    margin:0 0 5px
+}
+.notice p
+{
+    margin:5px 0
+}
+.status-Partial
+{
+    border-left-color:#a15b00;
+    background:#fff8e8
+}
+.status-Failed
+{
+    border-left-color:#b42318;
+    background:#fff1f0
+}
+.status-Disabled
+{
+    border-left-color:#586477;
+    background:#edf1f6
+}
+.mode
+{
+    font-weight:750
+}
+.report-label
+{
+    padding:10px 14px;
+    background:#e4edf3;
+    border-radius:8px;
+    font-weight:650
+}
+.cards
+{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:12px;
+    margin:24px 0
+}
+.card
+{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px
+}
+.card span
+{
+    display:block;
+    font-size:.85rem;
+    color:var(--muted)
+}
+.card strong
+{
+    display:block;
+    font-size:1.75rem;
+    overflow-wrap:anywhere;
+    margin-top:6px
+}
+section
+{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:24px;
+    margin-top:20px
+}
+.table-wrap
+{
+    overflow-x:auto
+}
+table
+{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.9rem;
+    table-layout:fixed
+}
+th,td
+{
+    padding:12px 14px;
+    text-align:left;
+    vertical-align:top;
+    border-bottom:1px solid var(--line);
+    overflow-wrap:anywhere
+}
+th
+{
+    background:#edf3f7;
+    font-weight:700
+}
+tbody tr:last-child td
+{
+    border-bottom:0
+}
+p
+{
+    overflow-wrap:anywhere
+}
+.caption,.empty,footer
+{
+    color:var(--muted);
+    font-size:.9rem
+}
+footer
+{
+    margin-top:28px
+}
+@media(max-width:600px)
+{
+    main
+    {
+        padding:24px 14px
+    }
+    section
+    {
+        padding:16px
+    }
+    th,td
+    {
+        padding:9px 7px;
+        font-size:.8rem
+    }
+    .cards
+    {
+        grid-template-columns:repeat(2,minmax(0,1fr))
+    }
+}
+@media print
+{
+    body
+    {
+        background:#fff
+    }
+    main
+    {
+        padding:0;
+        max-width:none
+    }
+    .cards
+    {
+        grid-template-columns:repeat(5,1fr)
+    }
+    section,.card,.notice
+    {
+        break-inside:avoid;
+        border-radius:0
+    }
+    thead
+    {
+        display:table-header-group
+    }
+    tr
+    {
+        break-inside:avoid
+    }
+    section
+    {
+        break-inside:auto
+    }
+    th,td
+    {
+        font-size:9pt
+    }
+    footer
+    {
+        font-size:9pt
+    }
+}
 </style>
 </head>
 <body><main>
