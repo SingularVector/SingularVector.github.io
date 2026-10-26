@@ -11,6 +11,8 @@ SingularVector is my engineering notebook: practical work around infrastructure,
 
 I’m Daniele, a systems and infrastructure engineer with more than 20 years of experience across Windows, Linux, identity and automation.
 
+My [CV](https://catanesi.pages.dev/) covers my professional experience and technical background in more detail.
+
 I work on the systems people depend on every day: servers, directories, messaging platforms and the processes that connect them. I like understanding how an environment works, finding the parts that create unnecessary effort, and building something better.
 
 If the same task keeps landing on someone’s desk, I want to know whether it needs a person at all.
