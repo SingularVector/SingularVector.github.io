@@ -110,6 +110,12 @@ The script became a tool through a few ordinary improvements: someone could run 
 
 Future you, opening it before coffee, will appreciate that.
 
+## Putting This into Practice
+
+There is a real project behind my interest in this: [Remove-OldFiles]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %}). In one of my previous companies, I used it to clean up logs from different automations, each with its own retention policy, and to support other teams with similar cleanup needs. The policies lived in a central CSV file.
+
+I am revisiting that project in a series of posts, starting with the behaviour we want to preserve and the assumptions we need to make explicit. First comes a report-only engine; CSV migration, controlled deletion and central policy storage will follow as the work develops. The implementation will stay in the [original repository](https://github.com/SingularVector/Remove-Old-Files), with the decisions and test results documented along the way.
+
 ### Further Reading
 
 - [Python argparse documentation](https://docs.python.org/3/library/argparse.html)
