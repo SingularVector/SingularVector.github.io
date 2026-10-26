@@ -118,7 +118,7 @@ In [my original cleanup article]({% post_url 2018-12-27-PowerShell-Delete-Files-
 
 It was useful. It also gives us something more interesting to examine than another example written specifically to make the explanation work. What should we preserve? Which assumptions need to become explicit? How do we prove that the files selected for cleanup are actually the ones the policy intended?
 
-That is the next series: rebuilding the solution in the original repository, one tested step at a time. We will start by defining the rules and building a report-only engine, then work through CSV migration, controlled deletion and, later, central policy storage and execution history. The posts will follow the decisions and results, including the parts where the old code gives me something to reconsider :)
+That is the next series: a two-part rebuild in the original repository. First we will make the rules and reporting trustworthy; then bring across the CSV policies and add controlled cleanup. Central policy storage can wait until the requirements justify it. The posts will follow the decisions and results, including the parts where the old code gives me something to reconsider :)
 
 ### Further Reading
 

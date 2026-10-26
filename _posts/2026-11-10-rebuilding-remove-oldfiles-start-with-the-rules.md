@@ -1,5 +1,5 @@
 ---
-title: "Rebuilding Remove-OldFiles: Start with the Rules"
+title: "Rebuilding Remove-OldFiles: Find First, Delete Later"
 date: 2026-11-10
 categories:
   - PowerShell
@@ -10,84 +10,132 @@ tags:
   - PowerShell
   - engineering
   - Remove-OldFiles
-description: "Revisit a real PowerShell cleanup project: separate retention policies from execution, define protected folders and make the rules explicit before rebuilding."
+description: "Rebuild a real PowerShell cleanup solution around explicit retention rules, protected folders and an HTML report you can review before deleting anything."
 ---
 
-In [From a Script to a Tool]({% post_url 2026-11-07-from-a-script-to-a-tool %}), we looked at what changes when someone else needs to depend on your script: clear inputs, usable results, meaningful failures and tests for the behaviour you promise.
+In [From a Script to a Tool]({% post_url 2026-11-07-from-a-script-to-a-tool %}), we looked at making a script dependable enough for someone else to use. Now let’s put those ideas against a solution I actually used.
 
-Now let’s put that into practice with a solution I actually used.
+Back in [2018 (time flies...), I wrote about deleting old files with PowerShell]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %}). That grew into [Remove-OldFiles](https://github.com/SingularVector/Remove-Old-Files), used at a previous company to manage logs from different automations and support other teams with similar cleanup needs.
 
-Back in [2018 (time flies...), I wrote about deleting old files with PowerShell]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %}). The example grew into [Remove-OldFiles](https://github.com/SingularVector/Remove-Old-Files), used at a previous company to clean up logs from different automations and support other teams with similar needs. Different locations had different retention rules. A central CSV described them, with ignore markers and exception notifications around the execution.
+Different locations had different retention rules. A central CSV described them, with ignore markers and exception notifications around execution.
 
 The files were not the difficult part. The rules were.
 
-“Delete old files” sounded like one job, until you asked whose files, how old, and which folders absolutely needed to be left alone. The original solution handled a useful operational problem; revisiting it gives us a chance to keep that value while questioning how the implementation expresses those decisions.
+I had considered moving the configuration into a database. Revisiting the project, I still see value in that—but first I want to answer a simpler question: **can we explain exactly why a file qualifies for cleanup?**
 
-I had already considered moving the configuration into a database. We will come back to that, but first I want to answer a simpler question: **can we explain and test exactly what one cleanup policy means?**
-
-This is where the rebuild starts. There will be code, but first there are a few promises to make—and a few old assumptions for me to revisit :)
+This rebuild follows that question in two parts: first selection and reporting, then migration and controlled execution. There are a few old assumptions for me to revisit along the way :)
 
 ---
 
-## What Was Worth Keeping?
+## Keep the Useful Design, Question the Assumptions
 
-The useful design decision was putting policy outside the code. One row could keep logs for 90 days; another could keep exported files for seven. Supporting a different team did not require another copy of the script with another hard-coded path.
+Putting policy outside the code was worth keeping. One row could retain logs for 90 days; another could keep exported files for seven. Supporting another team did not require another copy of the script with another hard-coded path.
 
-The CSV described four things: where to look, which extension to match, how many days to retain, and whether to recurse. A file named `ignore` offered a local way to protect a folder.
+The CSV held the path, extension, retention days and recursion setting. A file named `ignore` provided a local exception.
 
-Those ideas still make sense. CSV is also easy to inspect and edit. Replacing it with a database will be useful when we need ownership, policy revisions and execution history, not simply because the project is older than some of the files it was supposed to remove.
+Reading the current source also exposed mismatches. The documented recursion value `0` was treated as enabled because it was nonempty. Ignore handling compared exact parent directories, leaving deeper descendants insufficiently protected. Deletion counters could advance after nonterminating errors. Descriptions referred to creation time while selection used last-write time.
 
----
+There is also a mismatch between logging call sites and the embedded helper’s parameters. These are findings against the checked-in source, not a reconstruction of every historical deployment or local adjustment. Rewriting those assumptions in cleaner code would not be much of an improvement.
 
-## Read the Behaviour, Not Just the Comments
-
-Reviewing the current repository exposed a few mismatches:
-
-- The documented recursion value `0` is nonempty, and the implementation treats every nonempty value as enabled.
-- Recursive ignore handling compares exact parent directories, so a protected folder’s deeper descendants are not reliably protected.
-- Deletion counters can advance after nonterminating errors because the operation does not explicitly stop on error.
-- The description talks about creation time, while selection uses last-write time.
-
-There is also a mismatch between logging call sites and the embedded helper’s parameter names in the checked-in version. The logging function has evolved too; [New-LogEntry Revisited]({% post_url 2026-10-24-PowerShell-New-LogEntry-Revised %}) explains the current version, rather than assuming the embedded copy is interchangeable. These are findings from reading today’s source, not a reconstruction of every revision or local adjustment used historically.
-
-The point of this exercise is to turn those observations into explicit behaviour and checks. Rewriting the same assumptions in cleaner code would not be much of an improvement.
+So the first rebuilt capability is deliberately limited: **inspect one policy and report its decisions without deleting files**. The legacy script stays alongside the new module.
 
 ---
 
-## Decide What the Engine Promises
+## A Policy You Can Read
 
-The [behaviour specification](https://github.com/SingularVector/Remove-Old-Files/blob/main/docs/retention-engine-specification.md) defines a deliberately small first milestone: **accept one policy, inspect its scope, and report eligible files without deleting anything**.
+The `RetentionEngine` module requires PowerShell 7.4 or later. From the repository directory:
 
-Its rules include:
+```powershell
+Import-Module ./src/RetentionEngine/RetentionEngine.psd1 -Force
 
-- Last-write time in UTC, compared against one cutoff captured for the run. Exactly at the cutoff means not eligible.
-- Explicit Boolean recursion and enabled settings. The string `"0"` is not an acceptable substitute for a Boolean.
-- An `ignore` file protects its containing directory and the entire subtree. The walker does not enter that subtree just to count what it skipped.
-- Links and reparse points are not followed; linked roots and ancestors are rejected too.
-- A failed or incomplete inspection cannot masquerade as a successful empty result.
+$policy = [pscustomobject](
+    @{
+        PolicyId = 'automation-logs'
+        RootPath = 'C:\RetentionLab'
+        FilePattern = '*.log'
+        RetentionDays = 30
+        Recurse = $true
+        Enabled = $true
+    }
+)
 
-![Define the retention policy, inspect and report, verify the results, then add controlled execution. Central storage follows stable behaviour.]({{ '/assets/images/retention-rebuild/rebuild-stages.svg' | relative_url }})
+$report = Get-RetentionReport -Policy $policy
+$report | Select-Object Status, CandidateCount, CandidateBytes, ErrorCount
+$report.Candidates
+$report.Errors
+```
 
-*First make the selection explainable. Deletion and central management can build on that behaviour afterwards.*
+Replace the root with an existing disposable directory for your platform. The engine requires actual Booleans and an integer retention period; invalid input fails before traversal. It does not helpfully turn an empty pattern into “everything.” Cleanup software should be careful about that particular kind of helpfulness.
 
-There are tradeoffs here. Rejecting linked ancestors can also reject a convenient path alias. Including hidden files makes scope broader than a default directory listing. Both choices need documentation and tests, neither should be discovered during a cleanup run. Trust me you do not want to deal with that :)
+Age means `LastWriteTimeUtc`, strictly earlier than one cutoff calculated for the run. Exactly at the cutoff does not qualify. Tests can supply a fixed `-EvaluationTimeUtc` to check that boundary reliably.
+
+An old timestamp establishes eligibility under a policy. It does not prove the file is unused or safe for its application to lose.
 
 ---
 
-## Keep the First Milestone Small
+## Protect the Subtree Before Entering It
 
-The original script remains in the repository. The rebuilt module sits alongside it and has no deletion command. That lets us examine policy validation, exclusions, boundaries and failure reporting without attaching a real cleanup action to the first iteration.
+The walker visits one directory at a time. A regular `ignore` file protects its containing directory and every descendant. We do not enter that subtree just to count how many files we skipped.
 
-Next comes a CSV importer that translates the old fields into the new policy model. It must report defaults, reject invalid values and make broad matching explicit. Compatibility should preserve useful configuration, not accidentally preserve a bug.
+That is different from collecting everything recursively and filtering parent paths afterwards. It also avoids confusing neighbours such as `Archive` and `ArchiveOld`.
 
-Controlled deletion follows once we trust selection. Central policy storage and execution history come later, with decisions about ownership, workers and unavailable configuration before we pick a database.
+Links and reparse points are skipped, and linked roots or ancestors are rejected. On macOS, that means a physical path such as `/private/tmp/...` rather than the `/tmp` alias. Hidden files are included unless another exclusion protects them.
 
-It is less dramatic than unveiling a complete platform. It is also a better chance of ending up with something we can explain.
+Those choices have tradeoffs. Both need to be documented and tested; neither should be discovered during a cleanup run. Trust me, you do not want to deal with that :)
 
-Next in the rebuild: the report-only engine, the tests that shaped it, and why “nothing found” must be different from “could not look.”
+The [behaviour specification](https://github.com/SingularVector/Remove-Old-Files/blob/main/docs/retention-engine-specification.md) records the details. These are ordinary traversal boundaries, not a guarantee against hostile concurrent directory replacement.
+
+---
+
+## An Empty Report Needs an Explanation
+
+The result distinguishes four outcomes:
+
+| Status | Meaning |
+| --- | --- |
+| Completed | Inspection finished without errors; zero candidates is valid. |
+| Partial | Some intended inspection failed; the available inventory is incomplete. |
+| Failed | Invalid policy or initial root access prevented scanning. |
+| Disabled | A valid disabled policy was not scanned. |
+
+If checking an ignore marker fails, that directory is skipped with an error. We must not turn “could not check” into “nothing is protected.” Accessible siblings can still contribute to a partial report.
+
+The scanner returns objects, keeping candidates, exclusions and errors separate. Logging belongs alongside that result: my [New-LogEntry article]({% post_url 2026-10-24-PowerShell-New-LogEntry-Revised %}) covers the current logging function. A wrapper can record the run identifier, policy and failures without mixing diagnostic strings into the candidate stream. Automatic integration is not implemented yet.
+
+---
+
+## Make It Reviewable by Another Team
+
+Objects work well for automation. Asking another team to inspect them in a terminal is a different proposition.
+
+```powershell
+Export-RetentionReportHtml -Report $report -LiteralPath ./retention-report.html
+```
+
+Choose an existing output directory outside the scanned root. Existing files require `-Force`; `-WhatIf` previews the export without writing.
+
+The standalone HTML embeds its CSS and puts the outcome first, then counts, potential space, policy, cutoff, errors and file details. A partial scan should not be a footnote underneath an encouraging storage figure.
+
+![A synthetic retention report highlights an incomplete scan, two candidates, 82 MiB of observed file data and one error.]({{ '/assets/images/retention-rebuild/html-report-preview.png' | relative_url }})
+
+*Invented sample data, not production savings. The incomplete status matters as much as the candidate total.*
+
+[Open the full sample]({{ '/assets/reports/retention-rebuild/sample-retention-report.html' | relative_url }}). It works offline, escapes paths and diagnostics, and explicitly states that no files were deleted. Potential bytes describe observed file lengths, not guaranteed free space.
+
+That gives someone a useful way to review the selection without my being there to translate it. Which was rather the point of turning a script into a tool.
+
+---
+
+## Evidence Before Action
+
+At this reporting milestone, **61 local checks passed and three were skipped**, using macOS, PowerShell 7.6.7 and Pester 5.7.1. They covered age boundaries, recursion, protected descendants, symbolic links, failure reporting, unchanged fixture files and HTML export. Controlled mocks exercised permission and metadata failures; they do not establish real network-share behaviour.
+
+Windows path rules, junctions and a provisioned UNC share remain outside that local evidence. The repository documentation records the limitations and how to run the tests.
+
+Next we can bring the CSV policies across and add an explicit execution path. Finding the files is useful. Being able to explain the selection is what makes that next step worth attempting.
 
 ### Further Reading
 
-- [Original Remove-OldFiles repository](https://github.com/SingularVector/Remove-Old-Files)
+- [Original cleanup article]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %})
 - [Behaviour specification](https://github.com/SingularVector/Remove-Old-Files/blob/main/docs/retention-engine-specification.md)
-- [From a Script to a Tool]({% post_url 2026-11-07-from-a-script-to-a-tool %})
+- [Reporting usage and tests](https://github.com/SingularVector/Remove-Old-Files/blob/main/docs/report-only-usage.md)
