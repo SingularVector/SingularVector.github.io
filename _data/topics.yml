@@ -1,10 +1,10 @@
 # Curated topic groups. Original article categories and URLs stay unchanged.
 - id: powershell
-  title: PowerShell & automation
+  title: PowerShell_&_automation
   description: "PowerShell automation for systems administration: reusable functions, error handling, module distribution and practical fixes."
   categories:
   - PowerShell
-  - PowerShell Tips
+  - PowerShell_Tips
 - id: linux
   title: Linux & the terminal
   description: "Linux operations from the terminal: SSH connection management, command-line disk imaging and a CentOS package-update troubleshooting note."
@@ -14,10 +14,10 @@
   title: Identity & Microsoft 365
   description: "Identity and messaging administration with Active Directory, Exchange and Microsoft 365, including account automation and authentication troubleshooting."
   categories:
-  - Identity Management
+  - Identity_Management
   - Exchange
   - Office365
-  - Office 365
+  - Office_365
 - id: infrastructure
   title: Cloud & infrastructure
   description: "Infrastructure engineering across cloud and on-premises environments: automation, infrastructure as code, configuration, virtualisation and hands-on engineering notes."
@@ -31,7 +31,7 @@
   categories:
   - Python
 - id: git
-  title: Git & version control
+  title: Git_&_version control
   description: "Practical Git and version-control workflows: repository hygiene, branches, remotes, merging and recovering from mistakes."
   categories:
   - git
