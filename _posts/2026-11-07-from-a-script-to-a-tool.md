@@ -116,9 +116,7 @@ We have talked about explicit inputs, useful results, failure handling and tests
 
 In [my original cleanup article]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %}), I started with deleting files older than a given number of days. That grew into [Remove-OldFiles](https://github.com/SingularVector/Remove-Old-Files), which I used at a previous company to manage logs from different automations, each with its own retention policy, and to support other teams with similar cleanup needs. A central CSV held the rules, and local ignore markers provided exceptions.
 
-It was useful. It also gives us something more interesting to examine than another example written specifically to make the explanation work. What should we preserve? Which assumptions need to become explicit? How do we prove that the files selected for cleanup are actually the ones the policy intended?
-
-That is the next series: a two-part rebuild in the original repository. First we will make the rules and reporting trustworthy; then bring across the CSV policies and add controlled cleanup. Central policy storage can wait until the requirements justify it. The posts will follow the decisions and results, including the parts where the old code gives me something to reconsider :)
+The rebuild stays in the original repository. In [the first part]({% post_url 2026-11-10-rebuilding-remove-oldfiles-start-with-the-rules %}), we make cleanup decisions visible before removing anything. In [the second]({% post_url 2026-11-12-remove-oldfiles-when-a-report-becomes-a-delete %}), we replace the CSV with SQL Server rules and keep the scheduled job deliberately simple. There are a few assumptions from my earlier code to revisit along the way :)
 
 ### Further Reading
 

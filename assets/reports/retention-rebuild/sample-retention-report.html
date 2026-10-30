@@ -120,13 +120,67 @@ h2
     overflow-wrap:anywhere;
     margin-top:6px
 }
-section
+.report-section
 {
     background:#fff;
     border:1px solid var(--line);
     border-radius:14px;
-    padding:24px;
-    margin-top:20px
+    margin-top:20px;
+    overflow:hidden
+}
+.report-section > summary
+{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:22px 24px;
+    cursor:pointer;
+    list-style:none
+}
+.report-section > summary::-webkit-details-marker
+{
+    display:none
+}
+.report-section > summary:focus-visible
+{
+    outline:3px solid var(--teal);
+    outline-offset:-4px
+}
+.report-section[open] > summary
+{
+    border-bottom:1px solid var(--line)
+}
+.disclosure-icon
+{
+    width:9px;
+    height:9px;
+    flex:0 0 9px;
+    border-right:2px solid var(--teal);
+    border-bottom:2px solid var(--teal);
+    transform:rotate(-45deg)
+}
+.report-section[open] > summary .disclosure-icon
+{
+    transform:rotate(45deg)
+}
+.section-title
+{
+    flex:1;
+    font-size:1.2rem;
+    font-weight:700
+}
+.section-count
+{
+    padding:3px 10px;
+    border-radius:20px;
+    background:#edf3f7;
+    color:var(--muted);
+    font-size:.85rem;
+    white-space:nowrap
+}
+.section-content
+{
+    padding:20px 24px 24px
 }
 .table-wrap
 {
@@ -175,7 +229,16 @@ footer
     {
         padding:24px 14px
     }
-    section
+    .report-section > summary
+    {
+        padding:18px 16px;
+        gap:10px
+    }
+    .section-title
+    {
+        font-size:1.05rem
+    }
+    .section-content
     {
         padding:16px
     }
@@ -204,7 +267,7 @@ footer
     {
         grid-template-columns:repeat(5,1fr)
     }
-    section,.card,.notice
+    .report-section,.card,.notice
     {
         break-inside:avoid;
         border-radius:0
@@ -217,9 +280,34 @@ footer
     {
         break-inside:avoid
     }
-    section
+    /* Print every section even when it was collapsed on screen. */
+    .report-section
     {
-        break-inside:auto
+        break-inside:auto;
+        overflow:visible
+    }
+    .report-section::details-content
+    {
+        display:block !important;
+        content-visibility:visible !important;
+        height:auto !important
+    }
+    .section-content
+    {
+        display:block !important
+    }
+    .report-section > summary
+    {
+        break-after:avoid;
+        cursor:default
+    }
+    .disclosure-icon
+    {
+        display:none
+    }
+    .table-wrap
+    {
+        overflow:visible
     }
     th,td
     {
@@ -233,14 +321,26 @@ footer
 </style>
 </head>
 <body><main>
-<p class="report-label">Synthetic demonstration — not a production scan.</p>
+<p class="report-label">SYNTHETIC SAMPLE — invented paths, dates and file sizes. No real scan or cleanup was performed.</p>
 <header><p class="eyebrow">Remove-OldFiles · Retention engine</p><h1>Inspect first.<br>Decide with evidence.</h1></header>
 <div class="notice status-Partial" role="status"><h2>Partial</h2><p>INCOMPLETE INSPECTION: some paths could not be checked. Candidate totals are incomplete.</p><p class="mode">Report only — no files deleted.</p></div>
-<div class="cards"><div class="card"><span>Candidate files</span><strong>2</strong></div><div class="card"><span>Potential space reclaimable</span><strong>82 MiB</strong></div><div class="card"><span>Inspected regular files</span><strong>3</strong></div><div class="card"><span>Observed exclusions</span><strong>2</strong></div><div class="card"><span>Errors</span><strong>1</strong></div></div>
-<p class="caption">85983232 candidate bytes across observed files, not guaranteed recoverable disk space. Protected subtrees are not counted. This report is a scan-time snapshot, not deletion authorisation.</p>
-<section aria-labelledby="policy-heading"><h2 id="policy-heading">Policy &amp; scope</h2><div class="table-wrap"><table><thead><tr><th scope="col">Setting</th><th scope="col">Value</th></tr></thead><tbody><tr><td>Policy</td><td>sample-automation-logs</td></tr><tr><td>Original root</td><td>/example/automation-logs</td></tr><tr><td>Scanned root</td><td>/example/automation-logs</td></tr><tr><td>Age basis</td><td>LastWriteTimeUtc</td></tr><tr><td>Evaluation time</td><td>2026-10-26 12:00:00 UTC</td></tr><tr><td>Cutoff (strictly older)</td><td>2026-09-26 12:00:00 UTC</td></tr><tr><td>Started</td><td>2026-10-26 12:00:00 UTC</td></tr><tr><td>Finished</td><td>2026-10-26 12:00:02 UTC</td></tr><tr><td>Execution host</td><td>example-worker</td></tr><tr><td>Engine version</td><td>2.0.0-alpha1</td></tr><tr><td>Run identifier</td><td>sample-report-not-a-production-run</td></tr><tr><td>FilePattern</td><td>*.log</td></tr><tr><td>RetentionDays</td><td>30</td></tr><tr><td>Recurse</td><td>True</td></tr><tr><td>Enabled</td><td>True</td></tr></tbody></table></div></section>
-<section aria-labelledby="errors-heading"><h2 id="errors-heading">Errors requiring attention</h2><div class="table-wrap"><table><thead><tr><th scope="col">Path</th><th scope="col">Operation</th><th scope="col">Category</th><th scope="col">Message</th></tr></thead><tbody><tr><td>/example/automation-logs/restricted</td><td>InspectDirectory</td><td>DirectoryAccess</td><td>Synthetic example: permission denied. This directory was not inspected.</td></tr></tbody></table></div></section>
-<section aria-labelledby="candidates-heading"><h2 id="candidates-heading">Candidate files</h2><div class="table-wrap"><table><thead><tr><th scope="col">File path</th><th scope="col">Bytes</th><th scope="col">Last write (UTC)</th><th scope="col">Selection reason</th></tr></thead><tbody><tr><td>/example/automation-logs/nightly/2026-08.log</td><td>73400320</td><td>2026-09-01 06:00:00 UTC</td><td>LastWriteTimeBeforeCutoff</td></tr><tr><td>/example/automation-logs/import/2026-08.log</td><td>12582912</td><td>2026-09-03 08:30:00 UTC</td><td>LastWriteTimeBeforeCutoff</td></tr></tbody></table></div></section>
-<section aria-labelledby="excluded-heading"><h2 id="excluded-heading">Observed exclusions</h2><p class="caption">Entries actually observed; no estimate is made for unseen descendants.</p><div class="table-wrap"><table><thead><tr><th scope="col">Path</th><th scope="col">Kind</th><th scope="col">Reason</th></tr></thead><tbody><tr><td>/example/automation-logs/protected</td><td>Directory</td><td>IgnoreMarker</td></tr><tr><td>/example/automation-logs/current.log</td><td>File</td><td>NotOldEnough</td></tr></tbody></table></div></section>
+<div class="cards"><div class="card"><span>Candidate files</span><strong>3</strong></div><div class="card"><span>Potential space reclaimable</span><strong>35 MiB</strong></div><div class="card"><span>Inspected regular files</span><strong>5</strong></div><div class="card"><span>Observed exclusions</span><strong>4</strong></div><div class="card"><span>Errors</span><strong>1</strong></div></div>
+<p class="caption">36700160 candidate bytes across observed files, not guaranteed recoverable disk space. Protected subtrees are not counted. This report is a scan-time snapshot, not deletion authorisation.</p>
+<details id="policy-details" class="report-section" aria-labelledby="policy-heading">
+<summary><span class="disclosure-icon" aria-hidden="true"></span><span id="policy-heading" class="section-title">Policy &amp; scope</span><span class="section-count">15 settings</span></summary>
+<div class="section-content"><div class="table-wrap"><table><thead><tr><th scope="col">Setting</th><th scope="col">Value</th></tr></thead><tbody><tr><td>Policy</td><td>sample-automation-logs</td></tr><tr><td>Original root</td><td>D:\Automation\Logs</td></tr><tr><td>Scanned root</td><td>D:\Automation\Logs</td></tr><tr><td>Age basis</td><td>LastWriteTimeUtc</td></tr><tr><td>Evaluation time</td><td>2026-10-27 14:30:00 UTC</td></tr><tr><td>Cutoff (strictly older)</td><td>2026-09-27 14:30:00 UTC</td></tr><tr><td>Started</td><td>2026-10-27 14:30:00 UTC</td></tr><tr><td>Finished</td><td>2026-10-27 14:30:03 UTC</td></tr><tr><td>Execution host</td><td>LAB-WIN01 (example)</td></tr><tr><td>Engine version</td><td>2.0.0-rc1</td></tr><tr><td>Run identifier</td><td>sample-report-synthetic-data</td></tr><tr><td>FilePattern</td><td>*.log</td></tr><tr><td>RetentionDays</td><td>30</td></tr><tr><td>Recurse</td><td>True</td></tr><tr><td>Enabled</td><td>True</td></tr></tbody></table></div></div>
+</details>
+<details id="errors-details" class="report-section" aria-labelledby="errors-heading" open>
+<summary><span class="disclosure-icon" aria-hidden="true"></span><span id="errors-heading" class="section-title">Errors requiring attention</span><span class="section-count">1</span></summary>
+<div class="section-content"><div class="table-wrap"><table><thead><tr><th scope="col">Path</th><th scope="col">Operation</th><th scope="col">Category</th><th scope="col">Message</th></tr></thead><tbody><tr><td>D:\Automation\Logs\restricted</td><td>InspectDirectory</td><td>DirectoryAccess</td><td>Synthetic example: access denied. This directory was not inspected; its contents are unknown.</td></tr></tbody></table></div></div>
+</details>
+<details id="candidates-details" class="report-section" aria-labelledby="candidates-heading">
+<summary><span class="disclosure-icon" aria-hidden="true"></span><span id="candidates-heading" class="section-title">Candidate files</span><span class="section-count">3</span></summary>
+<div class="section-content"><div class="table-wrap"><table><thead><tr><th scope="col">File path</th><th scope="col">Bytes</th><th scope="col">Last write (UTC)</th><th scope="col">Selection reason</th></tr></thead><tbody><tr><td>D:\Automation\Logs\nightly\archive-2026-08.log</td><td>26214400</td><td>2026-08-31 02:15:00 UTC</td><td>LastWriteTimeBeforeCutoff</td></tr><tr><td>D:\Automation\Logs\imports\completed-2026-09-10.log</td><td>8388608</td><td>2026-09-10 05:20:00 UTC</td><td>LastWriteTimeBeforeCutoff</td></tr><tr><td>D:\Automation\Logs\maintenance\old-cleanup.log</td><td>2097152</td><td>2026-09-15 22:00:00 UTC</td><td>LastWriteTimeBeforeCutoff</td></tr></tbody></table></div></div>
+</details>
+<details id="excluded-details" class="report-section" aria-labelledby="excluded-heading">
+<summary><span class="disclosure-icon" aria-hidden="true"></span><span id="excluded-heading" class="section-title">Observed exclusions</span><span class="section-count">2 listed</span></summary>
+<div class="section-content"><p class="caption">Files that are too recent or do not match the filename rule are omitted from this list; totals still include those skips. Protected directories, skipped links and other exclusions remain visible. No estimate is made for unseen descendants.</p><div class="table-wrap"><table><thead><tr><th scope="col">Path</th><th scope="col">Kind</th><th scope="col">Reason</th></tr></thead><tbody><tr><td>D:\Automation\Logs\protected</td><td>Directory</td><td>IgnoreMarker</td></tr><tr><td>D:\Automation\Logs\linked-archive</td><td>Link</td><td>LinkOrReparsePoint</td></tr></tbody></table></div></div>
+</details>
 <footer>Standalone report · All timestamps shown in UTC · Review paths and diagnostics before sharing this file.</footer>
 </main></body></html>

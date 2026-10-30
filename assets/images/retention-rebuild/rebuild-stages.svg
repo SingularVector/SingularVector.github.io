@@ -1,1 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc"><title id="title">Rebuild the behaviour before centralising management</title><desc id="desc">Four stages: define policies, inspect and report, add controlled execution, and centralise policies with run history.</desc><rect width="1200" height="600" rx="20" fill="#f8fafc"/><style>text{font-family:Arial,sans-serif;fill:#172033}.title{font-size:30px;font-weight:700}.label{font-size:22px}.small{font-size:18px}</style><text x="45" y="55" class="title">Rebuild the behaviour before centralising management</text><text x="45" y="100" class="small">Each stage builds on behaviour that we can explain and check.</text><rect x="45" y="145" width="530" height="150" rx="12" fill="#fff" stroke="#cbd5e1"/><text x="65" y="190" class="label">1. Define the policy</text><text x="65" y="245" class="small">Age, scope, exclusions and failure meanings</text><rect x="625" y="145" width="530" height="150" rx="12" fill="#fff" stroke="#cbd5e1"/><text x="645" y="190" class="label">2. Inspect and report</text><text x="645" y="245" class="small">Select candidates without deleting files</text><rect x="45" y="350" width="530" height="150" rx="12" fill="#fff" stroke="#cbd5e1"/><text x="65" y="395" class="label">3. Add controlled execution</text><text x="65" y="450" class="small">Recheck targets and confirm real outcomes</text><rect x="625" y="350" width="530" height="150" rx="12" fill="#fff" stroke="#cbd5e1"/><text x="645" y="395" class="label">4. Centralise policy and history</text><text x="645" y="450" class="small">Ownership, revisions, workers and run results</text><text x="45" y="560" class="small">CSV migration connects existing policies to the new engine before execution is introduced.</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">A named cleanup job, one rules table</title>
+  <desc id="desc">A Windows scheduled task passes its job name to RetentionEngine. The module reads SQL Server rules and processes Windows folders sequentially, deleting only with Execute. Real attempts write UTC completion time, exception flag and actual machine name back to SQL Server. The engineer owns scheduling and machine assignment.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 Z" fill="#475569"/></marker>
+  </defs>
+  <style>
+    text { font-family: Arial, sans-serif; fill: #172033; }
+    .title { font-size: 29px; font-weight: 700; }
+    .heading { font-size: 23px; font-weight: 700; }
+    .body { font-size: 19px; }
+    .label { font-size: 18px; fill: #334155; }
+    .line { fill: none; stroke: #475569; stroke-width: 2.5; marker-end: url(#arrow); }
+  </style>
+  <rect width="1200" height="520" rx="20" fill="#f8fafc"/>
+  <text x="40" y="52" class="title">A named cleanup job, one rules table</text>
+  <text x="40" y="87" class="body">The engineer chooses the machine and schedule. The module processes the rules.</text>
+  <rect x="40" y="140" width="295" height="130" rx="12" fill="#fff" stroke="#cbd5e1"/>
+  <text x="60" y="179" class="heading">Windows scheduled task</text>
+  <text x="60" y="218" class="body">JobName: AppLogs</text>
+  <text x="60" y="248" class="body">Plan unless Execute is set</text>
+  <path d="M 335 205 H 435" class="line"/>
+  <text x="350" y="189" class="label">job name</text>
+  <rect x="440" y="140" width="320" height="130" rx="12" fill="#e0f2fe" stroke="#7dd3fc"/>
+  <text x="460" y="179" class="heading">RetentionEngine</text>
+  <text x="460" y="218" class="body">Validate, scan, recheck</text>
+  <text x="460" y="248" class="body">Process rules sequentially</text>
+  <path d="M 760 205 H 875" class="line"/>
+  <text x="781" y="189" class="label">inspect /</text>
+  <text x="781" y="236" class="label">execute</text>
+  <rect x="880" y="140" width="280" height="130" rx="12" fill="#fff" stroke="#cbd5e1"/>
+  <text x="900" y="179" class="heading">Windows folders</text>
+  <text x="900" y="218" class="body">Scope and ignore markers</text>
+  <text x="900" y="248" class="body">Deletion needs Execute</text>
+  <rect x="440" y="355" width="320" height="125" rx="12" fill="#fff" stroke="#cbd5e1"/>
+  <text x="460" y="393" class="heading">SQL Server</text>
+  <text x="460" y="428" class="body">dbo.CleanupRules</text>
+  <text x="460" y="459" class="body">Rules + last-result fields</text>
+  <path d="M 535 355 V 275" class="line"/>
+  <text x="405" y="321" class="label">read rules</text>
+  <path d="M 665 270 V 350" class="line"/>
+  <text x="683" y="306" class="label">real attempts only:</text>
+  <text x="683" y="331" class="label">UTC time, exceptions, host</text>
+  <text x="40" y="403" class="body">Plans and WhatIf:</text>
+  <text x="40" y="435" class="body">no deletion or SQL status writes.</text>
+</svg>
