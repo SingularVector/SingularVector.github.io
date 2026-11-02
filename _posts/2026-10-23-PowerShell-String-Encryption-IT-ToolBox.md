@@ -10,6 +10,7 @@ tags:
   - Encryption
   - Automation
 toc: true
+last_modified_at: 2026-11-02
 ---
 
 ## Same function names, different behaviour
@@ -21,6 +22,8 @@ Those functions are still part of the module, but version 3.0 changes how they w
 In this post I will go through the current implementation, show a couple of examples and explain what needs attention if you already have encrypted strings created with the older functions.
 
 The examples target **IT-ToolBox 3.0.0**, which requires **PowerShell 7.4 or later** and a platform with .NET AES-GCM support. They do not apply to Windows PowerShell 5.1 or the legacy functions.
+
+The examples are deliberately pinned to **IT-ToolBox 3.0.0**. The repository can contain a later module version; if you need to reproduce these exact calls, obtain the [3.0 source revision](https://github.com/SingularVector/IT-ToolBox/tree/5ea85e41a0672847e70716342651af52179ac649) and install that version using its setup instructions. `-RequiredVersion 3.0.0` does not automatically download or downgrade a different checkout.
 
 ## What changed
 

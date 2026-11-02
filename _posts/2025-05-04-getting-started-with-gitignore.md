@@ -4,6 +4,7 @@ date: 2025-05-04
 categories: [git, version-control]
 tags: [git, gitignore, version-control, best-practices]
 toc: true
+last_modified_at: 2026-11-02
 ---
 
 > This post kicks off a new series on Git essentials—starting with `.gitignore`, a simple yet powerful tool for managing what gets tracked in your repositories.
@@ -14,7 +15,7 @@ toc: true
 
 When working with Git, it's common to have files that shouldn't be tracked—such as build artifacts, temporary files, or sensitive information. The `.gitignore` file allows you to specify patterns for files and directories that Git should ignore.
 
-By placing a `.gitignore` file in your repository's root directory, you instruct Git to disregard specified files, keeping your version history clean and focused.
+A root `.gitignore` applies patterns within the repository; nested `.gitignore` files can add rules for their subtrees. These rules affect untracked files. They do not remove already tracked content or protect secrets that have already been committed.
 
 ---
 
@@ -53,8 +54,10 @@ If you've already committed files that should be ignored, updating `.gitignore` 
 1. Remove the files from the index:
 
    ```bash
-   git rm --cached filename
+   git rm --cached -- path/to/generated.log
    ```
+
+The command keeps your working copy of that file and stages its removal from version control. Review `git diff --cached` before committing. It does not erase the file from older commits.
 
 2. Commit the changes:
 
@@ -65,6 +68,16 @@ If you've already committed files that should be ignored, updating `.gitignore` 
 3. Push the changes to your remote repository.
 
 ---
+
+## Check a pattern
+
+If a path is not being ignored as expected, inspect the matching rule:
+
+```bash
+git check-ignore -v -- path/to/generated.log
+```
+
+For an already tracked path, `git check-ignore --no-index -v -- path/to/generated.log` can help inspect the pattern independently of its tracked state. Check both the pattern and whether the file is tracked before editing more rules.
 
 ## Global `.gitignore`
 
@@ -94,6 +107,6 @@ Then add your global ignore patterns to `~/.gitignore_global`.
 
 ---
 
-By effectively using `.gitignore`, you maintain a clean and efficient repository, free from unnecessary files and potential security risks.
+By effectively using `.gitignore`, you maintain a clean and efficient repository, focused on the files the project actually maintains. Keep credential storage and recovery from an accidental secret commit as separate concerns.
 
 Stay tuned for the next post in this series, where we'll explore branching strategies and how to manage them effectively.

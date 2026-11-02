@@ -1,6 +1,6 @@
 ---
 title: "SSH Connection Manager in Command Line"
-excerpt: "Managing multiple SSH connections and hosts can sometimes be problematic. In this post, I will show how you can easily save multiple connections directly in the terminal (Linux) to take advantage of tab completion, passwordless authentication, and more."
+excerpt: "Use OpenSSH host aliases with the correct config path, option precedence and a local configuration check before connecting."
 categories:
   - Linux
   - Howto
@@ -13,70 +13,68 @@ tags:
 toc: true
 header:
   teaser: "/assets/images/ssh-connection-manager/ssh_logo.jpg"
+last_modified_at: 2026-11-02
 ---
 
-## Managing SSH Connections
+When several servers have different usernames, ports and keys, an OpenSSH client configuration is often enough to stop reconstructing the connection command every time. Each `Host` entry gives the connection a memorable alias.
 
-In the Windows ecosystem, tools like Remote Desktop Manager help handle and manage multiple connections to the various servers within the infrastructure. But how can we achieve something similar for SSH connections to frequently accessed servers in Linux?
+## Create the client configuration
 
-Let’s explore how this can be done efficiently in the command line.
-
-## SSH Config file
-
-First, if it doesn’t already exist, create the .ssh directory in a convenient location (I keep mine in my $HOME directory):
+On Linux or macOS, the normal per-user location is `~/.ssh/config`. Create it without depending on your current working directory:
 
 ```bash
-mkdir .ssh
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+touch ~/.ssh/config
+chmod 600 ~/.ssh/config
 ```
 
-Next, create a file named config, adjust its default permissions, and open it with your favorite text editor:
+Open that file in your editor. The OpenSSH **client** reads it; it is not a shell startup file sourced by the terminal. The original commands created `.ssh` and `config` relative to the current directory, which could put the file somewhere SSH never consulted.
 
-```bash
-touch config
+## Put specific hosts before general defaults
 
-chmod 600 config
-
-vim config
-```
-
-This file is automatically sourced by the terminal, allowing you to easily connect to machines defined in it. Here's a sample of the configuration I use to manage my servers:
-
-```bash
+```sshconfig
 Host node_01
-        Hostname node01.lab.com
-        User pscustomobject
-        IdentityFile /home/pscustomobject/.ssh/id_rsa
+    HostName node01.example.com
+    User deploy
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+
 Host node_02
-        Hostname node02.example.com
-        User adminuser
-        Port 4242
+    HostName node02.example.com
+    User adminuser
+    Port 4242
 
-## Set connection defaults for all hosts, this is overriden by host options
 Host *
-     ForwardAgent no
-     ForwardX11 no
-     ForwardX11Trusted yes
-     User pscustomobject
-     Port 22
-     Protocol 2
-     ServerAliveInterval 60
-     ServerAliveCountMax 30
-
+    ForwardAgent no
+    ForwardX11 no
+    Port 22
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
 ```
 
-## Key Notes
+Replace the example hostnames, accounts and key path. Most scalar options use the **first obtained value**, so put more specific blocks before `Host *`. `IdentityFile` is one of the options that can accumulate multiple values; do not assume every directive follows the same override rule.
 
-- The IdentityFile directive points to the location of your private key. This can be stored in a shared or networked location for easier access across multiple devices.
-- The *Host ** section defines defaults for all hosts, which individual host entries can override.
+`IdentitiesOnly yes` limits which configured identities the first host offers, rather than trying every key available through an agent. It does not create a key, install a public key on a server or guarantee a login without prompts. Authentication and any key passphrase still need an appropriate setup.
 
-Once the SSH configuration is in place, you can connect to any of the defined hosts simply by issuing the command:
+Keep private keys under suitable access controls. Placing one on a shared or network location, as the old article suggested, is not a general distribution strategy; the SSH configuration only needs the path accessible to this client.
+
+## Inspect before connecting
+
+```bash
+ssh -G node_01
+```
+
+`-G` prints the evaluated configuration without opening the SSH session. For this example, confirm the resulting hostname, username, port and identities. With configurations you did not write, inspect any `Match exec` clauses before evaluating them: those clauses can run local commands during configuration processing.
+
+Then connect with the alias:
 
 ```bash
 ssh node_01
 ```
 
-Better yet, tab completion will work just as it does for standard commands, so you don’t have to remember the exact name of each node.
+Host-key checking still applies. Verify an unfamiliar server fingerprint through the normal trusted channel; an alias does not establish server identity.
 
-## Additional Tips
+Tab completion depends on the shell and its completion setup. Some installations suggest aliases from SSH configuration, while others need completion support enabled; defining a `Host` entry alone does not guarantee it.
 
-I highly recommend reading the *ssh_config* man page (*man ssh_config*) to discover the numerous other options you can use in your config file to further streamline and simplify SSH connection management.
+References: [OpenSSH client configuration](https://man.openbsd.org/ssh_config) and [ssh command options](https://man.openbsd.org/ssh).

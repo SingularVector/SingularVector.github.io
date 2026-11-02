@@ -1,7 +1,7 @@
 ---
 title: "PowerShell Measure Script execution time"
 excerpt: "Learn how to measure execution time of PowerShell scripts and commands using different techniques and approaches"
-last_modified_at: 2019-11-01T17:27:48-05:00
+last_modified_at: 2026-11-02
 categories:
   - PowerShell
   - HowTo
@@ -14,137 +14,69 @@ tags:
   - PowerShell Execution Time
 ---
 
-Sometime it is useful or necessary to measure time it takes PowerShell to execute a script or block of code. Maybe you need to calculate how often you can schedule a script, maybe curiosity on how long it will take to run your code or some other reason.
+Measuring a script can help decide how often to schedule it or identify which phase deserves investigation. The important part is measuring the whole interval, not subtracting the millisecond component of two clock readings.
 
-PowerShell offers different approaches to this which I am going to explore in this post.
-
-## Method 1 - Measure-Command cmdlet
-
-I will start with the built-in method the **[Measure-Command](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/measure-command?view=powershell-6)** cmdlet which can be invoked like in the following example
+## Measure one block
 
 ```powershell
-# Count from 0 to 10000 and measure
-Measure-Command {0..10000 | ForEach-Object {$i++} }
-
-Days              : 0
-Hours             : 0
-Minutes           : 0
-Seconds           : 0
-Milliseconds      : 148
-Ticks             : 1482658
-TotalDays         : 1.71603935185185E-06
-TotalHours        : 4.11849444444444E-05
-TotalMinutes      : 0.00247109666666667
-TotalSeconds      : 0.1482658
-TotalMilliseconds : 148.2658
+$executionTime = Measure-Command {
+    $sum = 0
+    foreach ($number in 1..10000) {
+        $sum += $number
+    }
+}
+$executionTime.TotalMilliseconds
 ```
 
-The cmdlet will return a *timespan* object which can easily be assigned to a variable like this: 
+`Measure-Command` executes the block and returns a `TimeSpan`. Its success-stream output is normally suppressed; the timing does not prove that the operation succeeded. Check failures and validate the result according to the workflow you are measuring.
+
+The earlier `[timespam]` type name was a typo; the .NET type is `[TimeSpan]`.
+
+## Components are not totals
 
 ```powershell
-[timespam]$executionTime = Measure-Command {0..10000 | ForEach-Object {$i++} }
+$example = [TimeSpan]::FromMilliseconds(1250)
+$example.Milliseconds
+# 250
+$example.TotalMilliseconds
+# 1250
 ```
 
-This way it is easy to retrieve desired value for elapsed time
+The same distinction applies to `Seconds` versus `TotalSeconds`: a duration of 74 seconds has a seconds component of 14. Use totals when reporting elapsed time across component boundaries.
+
+Subtracting `(Get-Date).Millisecond` values cannot measure a multi-second interval; that property ranges only from 0 to 999. The old example also subtracted end from start. Subtracting full `DateTime` values is a different operation, but the system clock can be adjusted, so a stopwatch is the better tool for elapsed intervals.
+
+## Time a longer workflow
+
+I tend to use .NET's stopwatch when I need control over where timing begins and ends:
 
 ```powershell
-$executionTime.Milliseconds
-
-148
-```
-
-Keep in mind, depending on how busy your CPU is, launching the same command over and over could yield slightly different results for each run even with a simple code as the one above.
-
-## Method 2 - Calculate difference in a [datetime] object
-
-I use, *abuse* would be a better fit, the **Get-Date** cmdlet and measuring script execution time is no exception to this rule, using again the same code as in the previous example it could be written like this
-
-```powershell
-[int]$startMs = (Get-Date).Millisecond
-
-0..10000 | ForEach-Object { $i++ }
-
-[int]$endMs = (Get-Date).Millisecond
-
-# Calculate elapsed time
-Write-Host $($startMs - $endMs)
-```
-
-In the above example we initialise a variable containing begin of operation milliseconds, again have PowerShell count from 1 to 10000, set another variable at the end of the cycle and finally print out difference between the start and end time giving us elapsed milliseconds.
-
-**Warning Notice:** I personally discourage, and never use myself, this approach for different reasons. *First* it makes code more difficult to read and generally **slower** due use of multiple variables and extra calculation. *Second* it poses problems with the elapsed time itself, what if the example above  would require 5 seconds to execute? Would it still work according to you?
-{: .notice--warning}
-
-## Method 3 - The .NET **Stopwatch** class
-
-The last method is even my preferred one, the **[stopwatch class](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.stopwatch?view=netframework-4.8)** which works exactly like a real life stopwatch, you start it, it will keep marking execution time and finally you stop it getting back execution time.
-
-PowerShell does not have a native cmdlet for this but you can use an *accelerator* to instantiate a new *stopwatch* instance with the following syntax
-
-```powershell
-# Instantiate and start a new stopwatch
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+try {
+    # Run the operation being measured here.
+    $sum = 0
+    foreach ($number in 1..10000) {
+        $sum += $number
+    }
+}
+finally {
+    $stopwatch.Stop()
+}
 
-# Get relevant properties and methods
-$stopwatch | Get-Member
-
-TypeName: System.Diagnostics.Stopwatch
-
-Name                MemberType Definition
-----                ---------- ----------
-Equals              Method     bool Equals(System.Object obj)
-GetHashCode         Method     int GetHashCode()
-GetType             Method     type GetType()
-Reset               Method     void Reset()
-Restart             Method     void Restart()
-Start               Method     void Start()
-Stop                Method     void Stop()
-ToString            Method     string ToString()
-Elapsed             Property   timespan Elapsed {get;}
-ElapsedMilliseconds Property   long ElapsedMilliseconds {get;}
-ElapsedTicks        Property   long ElapsedTicks {get;}
-IsRunning           Property   bool IsRunning {get;}
-
+[pscustomobject]@{
+    Result = $sum
+    ElapsedMilliseconds = $stopwatch.Elapsed.TotalMilliseconds
+}
 ```
 
-The above example shows the *stopwatch* class has an *Elapsed* property which will return a timespan object containing the same information we observed in the first example making it easy to gather information about performances of our script, let's see this in action (keep in mind I've left it running for a bit so this is not representative of actual performances)
+Stopping it in `finally` also covers an error path; it does not handle or suppress that error. A stopwatch accumulates elapsed time until stopped. `Start()` resumes the accumulated measurement, `Reset()` clears and stops it, and `Restart()` clears it and starts a new interval.
 
-```powershell
-PS C:\Users\lethe> $stopwatch.Elapsed
+## Make comparisons meaningful
 
-Days              : 0
-Hours             : 0
-Minutes           : 4
-Seconds           : 14
-Milliseconds      : 498
-Ticks             : 2544984068
-TotalDays         : 0.00294558341203704
-TotalHours        : 0.0706940018888889
-TotalMinutes      : 4.24164011333333
-TotalSeconds      : 254.4984068
-TotalMilliseconds : 254498.4068
-```
+Use the same inputs, check equivalent results and include setup or final conversion when that is part of the work being compared. A single run is a sample, not a stable performance guarantee. Warm-up, caching, network latency and host load can all matter.
 
-As with the previous examples we can easily assign the whole object or some of its properties to a variable
+Avoid repeatedly running a command with external side effects just to collect timings. Measure a representative lab operation or use an existing run's timing before repeating production work.
 
-```powershell
-[int]$elapsedSecods = $stopwatch.Elapsed.Seconds
+My [IT-ToolBox](https://github.com/SingularVector/IT-ToolBox) and [PowerShell Functions](https://github.com/SingularVector/PowerShell-Functions) repositories contain helpers I use around automation, but no extra function is needed for the timing examples here.
 
-$elapsedSecods
-
-14
-```
-
-Once script execution is complete we can simply stop the stopwatch, pun not intended, using the **stop()** method
-
-```powershell
-$stopwatch.Stop()
-```
-
-This will not produce any output so it is up to us saving details of the stopwatch and eventually communicating this back to the user.
-
-Among the various methods described in this post this is my preferred as it is the least performance-intensive and giving precise results.
-
-As PowerShell does not include a built-in cmdlet for this I ended up writing my own function, part of my [IT-ToolBox PowerShell Module](https://github.com/SingularVector/IT-ToolBox) that I use daily in my scripts.
-
-If you prefer to download the single functions/cmdlets I have created a dedicated repository where I am publishing functions making up my module or as standalone bits of code that can be found here [PowerShell Functions Repository](https://github.com/SingularVector/PowerShell-Functions) keep an eye on it as I will be adding new code and functions regularly.
+References: [Measure-Command](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/measure-command), [Stopwatch](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.stopwatch) and [TimeSpan.TotalMilliseconds](https://learn.microsoft.com/en-us/dotnet/api/system.timespan.totalmilliseconds).

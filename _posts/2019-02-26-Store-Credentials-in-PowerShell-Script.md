@@ -12,7 +12,7 @@ tags:
   - new-object system.management.automation.pscredential
   - PowerShell create credential
   - PowerShell store credentials in file
-last_modified_at: 2026-10-23
+last_modified_at: 2026-11-02
 ---
 
 ## Choose the authentication model first
@@ -73,6 +73,8 @@ My **[IT-ToolBox](https://github.com/SingularVector/IT-ToolBox)** module provide
 ### IT-ToolBox 3.0: explicit passphrase and authenticated encryption
 
 This example targets **IT-ToolBox 3.0.0**, whose manifest requires **PowerShell 7.4 or later**, on a platform with .NET AES-GCM support. Use the [module’s setup instructions and string-encryption documentation](https://github.com/SingularVector/IT-ToolBox#string-encryption) rather than assuming an older installed copy has the same behaviour.
+
+The examples are deliberately pinned to **IT-ToolBox 3.0.0**. The repository can contain a later module version; if you need to reproduce these exact calls, obtain the [3.0 source revision](https://github.com/SingularVector/IT-ToolBox/tree/5ea85e41a0672847e70716342651af52179ac649) and install that version using its setup instructions. `-RequiredVersion 3.0.0` does not automatically download or downgrade a different checkout.
 
 ```powershell
 Import-Module IT-ToolBox -RequiredVersion 3.0.0

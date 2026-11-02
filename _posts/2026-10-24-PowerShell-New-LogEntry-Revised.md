@@ -10,6 +10,7 @@ tags:
   - Automation
   - IT-ToolBox
 toc: true
+last_modified_at: 2026-11-02
 ---
 
 ## Revisiting New-LogEntry
@@ -47,6 +48,8 @@ The standalone version requires PowerShell 7.1 or later.
 ```powershell
 Import-Module IT-ToolBox -RequiredVersion 3.0.0
 ```
+
+The examples are deliberately pinned to **IT-ToolBox 3.0.0**. The repository can contain a later module version; if you need to reproduce these exact calls, obtain the [3.0 source revision](https://github.com/SingularVector/IT-ToolBox/tree/5ea85e41a0672847e70716342651af52179ac649) and install that version using its setup instructions. `-RequiredVersion 3.0.0` does not automatically download or downgrade a different checkout.
 
 All examples below refer to this revised implementation. The older `New-LogEntry` repository is still around, but it should not be considered interchangeable with this version and Windows PowerShell 5.1 is no longer a compatibility target.
 

@@ -1,7 +1,7 @@
 ---
 title: "The image hash and certificate are not allowed"
 excerpt: "The image hash and certificate are not allowed error is displayed when creating a new Hyper-V machine"
-last_modified_at: 2019-11-03T08:55:48-05:00
+last_modified_at: 2026-11-02
 categories:
 
   - Windows
@@ -14,35 +14,47 @@ tags:
   - Tips
 ---
 
-Today I was deploying a new Linux machine in my home lab, part of which is running on Hyper-V,to host a *Docker* cluster base on Linux CentOS.
+In my original lab setup, a generation 2 Hyper-V VM failed to boot a CentOS 7 ISO with **“The image's hash and certificate are not allowed.”** Secure Boot was enabled with the Windows template. The useful lesson is checking which boot-signing authority the VM trusts, rather than treating every failed ISO boot as a reason to disable Secure Boot.
 
-After creating the VM and connecting the required ISO File, CentOS 7 in my case, I booted it just to be greeted by the **The image hash and certificate are not allowed** error message with machine failing to boot as no PXE server is configured for network boot.
+CentOS 7 was the guest in that 2019 incident, not a current installation recommendation. Use supported installation media for the guest you plan to deploy.
 
-The error message is caused by having *Secure Boot* enabled with an incorrect configuration for guest OS, you can easily display the configuration with the following command:
+## Check the VM and firmware
 
-```powershell
-Get-VMFirmware -VMName $vmName
-
-VMName    SecureBoot SecureBootTemplate PreferredNetworkBootProtocol BootOrder
-------    ---------- ------------------ ---------------------------- ---------
-SRV-TEST  On         MicrosoftWindows   IPv4                         {File, Network, Drive, Drive}
-```
-
-As you can see in the above example the *SEcureBootTemplate* is set to *MicrosoftWindows* which is the default value for new VMs.
-
-To change this setting use the **Set-VMFirmware** like this
+Run these commands on a Windows Hyper-V host with the module and permissions to inspect the VM. Replace the example name:
 
 ```powershell
-Set-VMFirmware -VMName $vmName -SecureBootTemplate MicrosoftUEFICertificateAuthority
-
-# Very correct settings
-VMName    SecureBoot SecureBootTemplate                PreferredNetworkBootProtocol BootOrder
-------    ---------- ------------------                ---------------------------- ---------
-SRV-TEST  On         MicrosoftUEFICertificateAuthority IPv4                         {File, Network, Drive, Drive}
+$vmName = 'Linux-Lab'
+Get-VM -Name $vmName -ErrorAction Stop |
+    Select-Object Name, State, Generation
+Get-VMFirmware -VMName $vmName -ErrorAction Stop |
+    Select-Object VMName, SecureBoot, SecureBootTemplate, BootOrder
 ```
 
-If you want to disable *SecureBoot* all together for a specific VM, for example if it will still not boot, you can easily do that with the following command:
+`Get-VMFirmware` targets generation 2 firmware. A generation 1 VM uses a different boot model, so this procedure does not apply to it.
+
+## Select the appropriate Linux template
+
+For supported Linux guests whose signed bootloader is trusted by the Microsoft UEFI Certificate Authority template, Microsoft's documented choice is that template instead of Microsoft Windows. Arrange a normal guest shutdown before changing firmware settings; the example checks that the VM is already off rather than turning it off for you:
 
 ```powershell
-Set-VMFirmware -VMName $vmName -EnableSecureBoot Off
+$vm = Get-VM -Name $vmName -ErrorAction Stop
+if ($vm.Generation -ne 2 -or $vm.State -ne 'Off') {
+    throw 'This example requires a powered-off generation 2 VM.'
+}
+Set-VMFirmware -VMName $vmName -EnableSecureBoot On `
+    -SecureBootTemplate MicrosoftUEFICertificateAuthority -ErrorAction Stop
+Get-VMFirmware -VMName $vmName -ErrorAction Stop |
+    Select-Object SecureBoot, SecureBootTemplate
 ```
+
+This changes firmware trust configuration; it does not start the VM. Check the distribution's current Hyper-V/Secure Boot support and keep the host updated. The template is not a guarantee that any ISO or bootloader will be accepted.
+
+## If the image is still rejected
+
+Verify the downloaded image against the publisher's checksum and confirm the guest architecture and generation. Review the bootloader's signing/revocation requirements and the host's Secure Boot updates; older media can remain unsuitable even with the expected template.
+
+A later PXE attempt may simply mean the firmware tried the next boot entry after rejecting the ISO. It does not establish that a missing PXE server caused the original certificate error.
+
+The original article ended by disabling Secure Boot if the VM still failed. That broad fallback has been removed: first establish why the image is rejected and choose a supported boot configuration for that guest.
+
+Reference: Microsoft's [generation 2 VM security guidance](https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/learn-more/Generation-2-virtual-machine-security-settings-for-Hyper-V).

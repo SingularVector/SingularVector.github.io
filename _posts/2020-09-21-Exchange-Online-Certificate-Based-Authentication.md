@@ -1,7 +1,7 @@
 ---
 title: "Exchange Online - Certificate Based Authentication - Step by Step"
 excerpt: "Exchange Online certificate authentication: historical setup walkthrough with current guidance on app permissions, certificate handling and supported connections."
-last_modified_at: 2026-10-23
+last_modified_at: 2026-11-02
 categories:
   - PowerShell
   - Office365
@@ -113,17 +113,17 @@ $paramNewSelfSignedCertificate = @{
     CertStoreLocation = 'cert:\CurrentUser\My'
     KeySpec           = 'KeyExchange'
     FriendlyName      = 'Exchange Online Authentication Certificate'
+    KeyAlgorithm      = 'RSA'
+    KeyLength         = 2048
+    Provider          = 'Microsoft Enhanced RSA and AES Cryptographic Provider'
+    NotAfter          = (Get-Date).AddYears(1)
 }
 
-New-SelfSignedCertificate @paramNewSelfSignedCertificate
-
-# Output
-Thumbprint                                Subject
-----------                                -------
-1B1541D37888EFECD058B528524764G0EF8608D4  CN=Exchange Online Background Process
+$certificate = New-SelfSignedCertificate @paramNewSelfSignedCertificate
+$certificate | Select-Object Thumbprint, Subject, NotAfter
 ```
 
-**Note:** Certificate will be automatically installed in the local certificate store under *User / Personal Certificates* and have, by default, validity of 1 year.
+**Note:** This Windows example explicitly requests an RSA key with a CSP provider and a one-year validity period. The certificate is created in the current user’s Personal store. Run the job under an identity that can access the required private key; creating a certificate in your own store does not deploy it to a service account.
 {: .notice--primary}
 
 Open *Certificate Manager* MMC console and under *Certificates Current User / Personal / Certificates* right-click on the certificate and select *All Tasks / Export*. Just follow the export wizard be sure to select *Do not export private key* and select **CER** as the export format.
@@ -144,21 +144,21 @@ The following screenshots show the original broad Microsoft Entra directory-role
 
 Do not assign a permanent Exchange Administrator role simply to reproduce these screenshots. Choose the authorisation model in the [current app-only procedure](https://learn.microsoft.com/en-us/powershell/exchange/app-only-auth-powershell-v2).
 
-With the *Azure AD* blade selected go to **Roles and administrators** and select **Exchange Administrator** confirming with the *Add Assignment* button
+In the original 2020 workflow, the *Azure AD* **Roles and administrators** page was used to assign **Exchange Administrator**. The screenshot below records that broad historical assignment; it is not an instruction to grant it to a new automation.
 
 <figure>
   <a href="{{ '/assets/images/exchange-online-certificate-authentication/Azure_Exchange_Admin_Role.png' | relative_url }}">
   <img src="/assets/images/exchange-online-certificate-authentication/Azure_Exchange_Admin_Role.png" alt="Azure Exchange Admin Role" loading="lazy" decoding="async"></a>
 </figure>
 
-In *Select Member* windows you will need to search application by GUID and select it
+The historical *Select Member* dialog identified the application by its GUID.
 
 <figure>
   <a href="{{ '/assets/images/exchange-online-certificate-authentication/Azure_Exchange_Assignment.png' | relative_url }}">
   <img src="/assets/images/exchange-online-certificate-authentication/Azure_Exchange_Assignment.png" alt="Azure Exchange Assignment" loading="lazy" decoding="async"></a>
 </figure>
 
-In the *Add Assignment* page be sure to select **Active** under *Assignment Type* and tick the **Permanently Assign** checkbox
+The original *Add Assignment* screen showed an **Active**, permanent assignment. For a current deployment, choose the required Exchange authorisation model and scope rather than reproducing that selection.
 
 <figure>
   <a href="{{ '/assets/images/exchange-online-certificate-authentication/Add_Assignment_Page.png' | relative_url }}">
