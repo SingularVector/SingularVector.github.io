@@ -11,247 +11,89 @@ tags:
   - Hashtables
   - PowerShell Arrays
   - Lists
+last_modified_at: 2026-11-02
 ---
 
-**Arrays** are a data structure designed to store a collection of items that can be of the same or different type. *Arrays* are a fundamental tool in PowerShell and chances are you already used them even without knowing.
+PowerShell frequently gives you several objects from one command. An array is an ordered collection of values; understanding its shape avoids the familiar “it worked until the query returned only one user” problem.
 
-## Arrays - A collection of items
-
-As already mentioned an array is a collection of items and can be declared like this
+## Create and index an array
 
 ```powershell
-# Declare and assign values to an array
-$myArray = 22,5,10,8,12,9,80
-
-# Create an empty array
-$myEmptyArray = @()
-
-# Range array with elements 0 to 9
-$anotherArray = 100 .. 110
+$numbers = @(100..110)
+$numbers.Count
+# 11
+$numbers[0]
+# 100
+$numbers[5]
+# 105
+$numbers[6]
+# 106
+$numbers[-1]
+# 110
 ```
 
-An array has a **length** property which we can use to get the number of elements in the array, for example *$anotherArray* from the previous example will have a length of **10**
+Both ends of `100..110` are included. Indices start at zero, so the sixth element is at index 5. The earlier example incorrectly showed 105 as the result of index 6.
+
+Use `foreach` to visit the values in order:
 
 ```powershell
-# Get number of elements
-$anotherArray.Length
-
-11
-```
-
-## Accessing Elements in an Array - Index
-
-All elements in an array have an **index** which is the position of the element within the array, it is important to remember that arrays are created and displayed according to the order you specified for example
-
-```powershell
-# Print content
-$anotherArray
-
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-```
-
-You can access each element of an array using its index number
-
-```powershell
-$anotherArray[6]
-
-105
-```
-
-You probably already know or noticed this but PowerShell starts indexing an *array* at **0** so, in our example, the 6th element will be **105**
-
-## Accessing Elements in an Array - Iteration
-
-Another common way to access elements of an array is **looping** through them like this for example
-
-```powershell
-foreach ($index in $anotherArray)
-{
-    Write-Host $index
-}
-
-# Output
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-```
-
-## Empty Arrays
-
-Up to this point we have illustrated how to create and immediately assign a value to arrays PowerShell also supports creating *empty* arrays with the following syntax:
-
-```powershell
-# Create empty array
-$myEmptyarray = @()
-
-# Display length
-$myEmptyarray.Length
-
-0
-```
-
-This technique is useful when you want to instantiate a new **Array** but don't know the number of elements it will contain.  
-
-Here's another example of iterating through an array that I'm sure anybody dealing with an Active Directory domain used at least once:
-
-```powershell
-# Create the array
-$matchingUsers = @()
-
-# Get all enabled users
-$matchingUsers = Get-AdUser -Filter * -Server 'MyDc.myDomain.com'
-
-# Iterate throguh users
-foreach ($user in $matchingUsers)
-{
-    # Take some action
+foreach ($number in $numbers) {
+    $number * 2
 }
 ```
 
-## Strongly Typed Arrays
+The loop variable contains the **value**, not its index. If the position matters, use a `for` loop with an index variable.
 
-PowerShell is not a strongly typed language meaning we don't need to declare the type of data a variable contains as PowerShell will try to guess this automatically:
+## Preserve zero, one and many results
 
-```powershell
-# PowerShell will automatically create the correct
-# object type
-$aString = 'This is string'
-$anInt = 32
-
-$aString.GetType()
-
-IsPublic IsSerial Name   BaseType
--------- -------- ----   --------
-True     True     String System.Object
-   
-$anInt.GetType()
-
-IsPublic IsSerial Name   BaseType
--------- -------- ----   --------
-True     True     Int32  System.ValueType
-```
-
-The same happens with *arrays* but we have the option to create a *strongly typed array* that is, an array that can contain only values of a particular type:
+A command assigned directly to a variable can produce `$null`, a single object or an array, depending on its output. Wrap the command in an array subexpression when the calling code needs an array in every case:
 
 ```powershell
-[int32[]]$intArray = 1300,22,4578,8000
+$logs = @(Get-ChildItem -LiteralPath '.' -Filter '*.log' -File -ErrorAction Stop)
+$logs.Count
 ```
 
-**Note:** In the above example the square brackets **[ ]** after the type *int32* tell PowerShell what follows is an array.
+The wrapper controls result shape, not error handling. `-ErrorAction Stop` prevents a failed directory read from looking like a successful empty result.
 
-## Manipulating Arrays Elements
-
-As closing topic let's see how we can manipulate elements in an *array* like **adding**, **removing** and **updating** elements. 
-
-### Change Elements Values in an Array
-
-Let's say we want to update the first element of the **$anotherArray** we previously created with a value of *200* this can be accomplished like this
+## Typed arrays and updates
 
 ```powershell
-# Update element with index 0
-$anotherArray[0] = 200
-
-$anotherArray
-200
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
+[int[]]$numbers = @(100..110)
+$numbers[0] = 200
+$numbers.SetValue(201, 1)
+$numbers[0..2]
+# 200, 201, 102
 ```
 
-Arrays support the **SetValue** method to change a value syntax is as follows
+`[int[]]` constrains the element type. Values must be convertible to integers; incompatible assignments fail. An array's length remains fixed, but its elements can be replaced.
+
+For additions, removals and mutable lists, see [add or remove elements]({% post_url 2018-12-24-Add-Remove-Items-From-Array %}). In particular, array `+=` performance differs between older PowerShell releases and the optimisation introduced in 7.5.
+
+## Removing the last item safely
+
+A range such as `0..($array.Count - 2)` is not a safe general slice: for an empty or one-item array it creates a descending range, rather than no indices. One approach that handles all three cases is:
 
 ```powershell
-# Set element with index 1 to 201
-$a.SetValue(201,1) #value, index
+$items = @('first', 'second', 'third')
+$withoutLast = @(
+    for ($index = 0; $index -lt ($items.Count - 1); $index++) {
+        $items[$index]
+    }
+)
+# first, second
 ```
 
-### Add Elements in an Array
+This produces an empty array when `$items` has zero or one element. It leaves the original array unchanged.
 
-Elements can be added to an array with the **+=** notation like this
+## Empty, null and missing are different
 
 ```powershell
-# Update element with index 0
-$anotherArray += 500
-
-$anotherArray
-
-200
-201
-102
-103
-104
-105
-106
-107
-108
-109
-110
-500
+$items = @()            # An empty array
+$items.Count           # 0
+$items = $null         # The variable now holds null, not an empty array
+Remove-Variable items  # Remove the variable from this scope
 ```
 
-**Note:** I wrote a detailed explanation of what happens when using the above notation in my previous article [Add or remove elements from an array](https://singularvector.github.io/powershell/Add-Remove-Items-From-Array/). In a nutshell PowerShell is creating a copy of the array and copying all values and adding the one we specified.
+Assigning `$null` releases that variable's reference; it does not empty an array object still referenced elsewhere. The original advice to use `Remove-Item` was also misleading: that command acts on a provider path, not directly on an array value.
 
-### Remove Elements in an Array
-
-Strictly speaking, similarly to what happens with adding elements, it is not possible to delete them from an array. The trick is creating a new array that will contain *only* relevant elements. 
-
-Here's an example where we are removing the last element of the *$anotherArray*:
-
-```powershell
-# Remove last element from the $anotherArray
-$removeElement = $anotherArray[0..($anotherArray.Length -2)]
-
-200
-201
-102
-103
-104
-105
-106
-107
-108
-109
-110
-
-# Create an array containing only some values
-$newArray = $anotherArray[0,1,3]
-
-200
-201
-103
-```
-
-### Deleting an array
-
-To remove array's content but not the array itself you can simply assign a *$null* value to it. This will remove all data contained in the array but not the object itself
-
-```powershell
-$newArray = $null
-```
-
-You can also use the *Remove-Item* cmdlet but assigning a $null value is the preferred approach as it is faster especially when dealing with large arrays.
+Reference: Microsoft's [array guide](https://learn.microsoft.com/en-us/powershell/scripting/learn/deep-dives/everything-about-arrays).

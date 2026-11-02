@@ -7,325 +7,105 @@ categories:
 tags:
   - PowerShell
   - Performance Tips
+last_modified_at: 2026-11-02
 ---
 
-Please raise your (virtual) hand if you ever found yourself in need to have your code take a different path depending on the value of a specific variable or outcome of a command.
+A chain of `if`/`elseif` conditions can get awkward when several inputs need named actions. `switch` is another way to express that decision, with an important difference: more than one clause can match.
 
-While I cannot see raised hands I am sure we all have been there and maybe ended up using a chained list of *if/elseif/else* statements. Today we will look at a better way of doing this via the **switch** statement.
-
-## The if/elseif/else statement(s)
-
-Let's start with a very basic example:
-
-```powershell
-# Declare variable holding week day
-[string]$weekDay = 'Sunday'
-
-if ($weekDay -eq 'Sunday')
-{
-    Write-Host -Message 'You can rest sir, it is Sunday after all!'
-}
-else 
-{
-    Write-Host -Message 'Wake up you have work to do!'
-}
-```
-
-This is a very basic example just to get the idea and all in all there is nothing wrong with the above code, it will execute and is easy enough to read.
-
-What happens if extend on it and have a more complex logic?
+## Match a value
 
 ```powershell
 $weekDay = 0
-
-    if ( $day -eq 0 ) { $dayName = 'Sunday'        }
-    elseif ( $weekDay -eq 1 ) { $dayName = 'Monday'    }
-    elseif ( $weekDay -eq 2 ) { $dayName = 'Tuesday'   }
-    elseif ( $weekDay -eq 3 ) { $dayName = 'Wednesday' }
-    elseif ( $weekDay -eq 4 ) { $dayName = 'Thursday'  }
-    elseif ( $weekDay -eq 5 ) { $dayName = 'Friday'    }
-    elseif ( $weekDay -eq 6 ) { $dayName = 'Saturday'  }
-
-    Write-Host "Today is $dayName"
-
-    # Today is Sunday
+$dayName = switch ($weekDay) {
+    0 { 'Sunday' }
+    1 { 'Monday' }
+    2 { 'Tuesday' }
+    3 { 'Wednesday' }
+    4 { 'Thursday' }
+    5 { 'Friday' }
+    6 { 'Saturday' }
+    default { throw "Unknown weekday value: $weekDay" }
+}
+$dayName
+# Sunday
 ```
 
-Well nothing will happen the above is perfect valid code and rather common but it presents two issues, *readability* and, to a less extent, *performance*.
+`default` runs when no clause matches an input. It is a useful place to reject an unsupported value rather than continuing with a stale `$dayName` from a previous operation.
 
-An alternate, and if you ask me better, way to solve the above is a **switch** statement which is support but most programming languages (but not Python).
+String matching is case-insensitive by default. Use `-CaseSensitive` when case is part of the input contract. Literal switch comparisons convert values to strings, so do not treat them as a strict type-validation mechanism.
 
-## The switch statement
-
-First of all let's rewrite the above example using a *switch* statement to immediately appreciate the differences:
+## Wildcards and regular expressions are different modes
 
 ```powershell
-switch ($weekDay)
-{
-    0 { $dayName = 'Sunday' }
-    1 { $dayName = 'Monday' }
-    2 { $dayName = 'Tuesday' }
-    3 { $dayName = 'Wednesday'}
-    4 { $dayName = 'Thursday' }
-    5 { $dayName = 'Friday' }
-    6 { $dayName = 'Saturday'}
+$logMessage = '[Error] - Exception reported'
+$kind = switch -Wildcard ($logMessage) {
+    '[[]Error]*' { 'Error'; break }
+    '[[]Warning]*' { 'Warning'; break }
+    default { 'Info' }
+}
+$kind
+# Error
+```
+
+`[[]` matches a literal opening bracket in a wildcard pattern. Bare `[Error]` would describe a character set, not the literal word in brackets. The original wildcard section incorrectly used `-Regex`; changing only the patterns would not fix that mismatch.
+
+The equivalent regular-expression patterns use regex escaping:
+
+```powershell
+$kind = switch -Regex ($logMessage) {
+    '^\[Error\]' { 'Error'; break }
+    '^\[Warning\]' { 'Warning'; break }
+    default { 'Info' }
 }
 ```
 
-The above is trivial example but it should be clear how code is more readable and easier to maintain especially if within parentheses we start implementing custom logic and/or additional operations, as I said there is also the added performance benefit as a switch statement is generally faster than an if/else construct as internally PowerShell will build a lookup table in memory to evaluate the various expressions.
+I use this kind of classification with log messages, including output from my logging tools. Select the mode that matches the pattern language you actually intend.
 
-In the above example I used an *integer* as the lookup value but of course we can use strings as well:
+## Multiple matches
 
 ```powershell
-switch ($weekDay)
-{
-    '0' { $dayName = 'Sunday' }
-    '1' { $dayName = 'Monday' }
-    # ...
+switch ('sample') {
+    'sample' { 'First action' }
+    'SAMPLE' { 'Second action' }
 }
+# First action
+# Second action
 ```
 
-### The default statement
+Both clauses match. This is not an `if`/`elseif` chain that automatically stops after the first successful condition. Add `break` when first-match behaviour is required, or order and combine the clauses deliberately when several actions should run.
 
-The examples we just illustrated pose an interesting question, *what if the values of $weekDay variable is not contained in our switch statement*? The **default** clause exists just for and as the name implies it exists as *catch all* and is used like this
+## Arrays, continue and break
+
+With an array as input, the switch visits each element. `$_` or `$PSItem` refers to the current element:
 
 ```powershell
-$weekDay = 100
-
-switch ($weekDay)
-{
-    '0' { $dayName = 'Sunday' }
-    '1' { $dayName = 'Monday' }
-    # ...
-    default { Write-Host -Message 'Sorry I cannot recognize the value!' }
+$messages = @('Info: starting', 'Warning: slow', 'Error: failed', 'Info: finished')
+switch -Wildcard ($messages) {
+    'Warning:*' { "Warning handled: $_"; continue }
+    'Error:*' { "Stopping: $_"; break }
+    default { "Message: $_" }
 }
+# Message: Info: starting
+# Warning handled: Warning: slow
+# Stopping: Error: failed
 ```
 
-### Switch matching Arrays
+`continue` advances to the next input, skipping remaining clauses for that item. `break` leaves the entire switch, so the final message is not processed. A repeated input value is processed each time it appears.
 
-One little known and appreciated feature of the *switch* statement is its ability to check values in an array
+## Use predicates when the condition is not a literal match
 
 ```powershell
-[array]$serverRole = @(
-    'Web Server',
-    'Application Server',
-    'Database Server',
-    'Gateway Server'
-)
-
-switch ($serverRole)
-{
-    'Web Server'
-    {
-        'Install the web server role'
-    }
-    'Application Server' { 'Install the Applicaiton Server Role' }
-    'Database Server' { 'Install Datbase Server' }
-    'Gateway Server' {'Install Gateway components' }
-    default {'Take no action'}
+$age = 37
+switch ($age) {
+    { $_ -lt 0 } { throw 'Age cannot be negative.' }
+    { $_ -ge 0 -and $_ -lt 18 } { 'Under 18' }
+    { $_ -ge 18 } { 'Adult' }
 }
+# Adult
 ```
 
-**Note:** If an element is repeated in the array it will be matched multiple times by the switch statement.
-{: .notice--warning}
+Each scriptblock is a condition evaluated against the current input. Overlapping predicates can execute multiple actions unless you stop processing explicitly.
 
-## PSItem
+Choose `switch` for readable dispatch or pattern matching, not because it is guaranteed to be faster. The original claim that every switch builds a lookup table was too broad: mode, conditions and workload affect performance. For a simple key/value mapping, a [hashtable]({% post_url 2019-01-06-PowerShell-HashTables %}) may express the intention more directly.
 
-We can use the $PSItem or $_ built-in variables to reference the current item that has been processed. When we do a simple match, $PSItem will be the value that we are matching.
-
-## Switch Parameters
-
-Up to this point we've illustrated the basic capabilities of a switch statement but there is much more to explore next let's talk about **parameters** allowing to alter the way statements works.
-
-## -CaseSensitive
-
-As most things in PowerShell even the switch statement is *case insensitive* by default and we can use the **-CaseSensitive** parameter, in conjunction with others, to alter this default behavior and only perform exact matches similar to **-cmatch**.
-
-## -RegEx
-
-This is one of my favorite and I use it a lot when parsing log files from my *[New-LogEntry](https://github.com/SingularVector/New-LogEntry)* function here is a sample snippet
-
-```powershell
-[string]$logMessage = '[Error] - Exception reported'
-
-switch -Regex ( $logMessage )
-{
-    '^\[Error]'
-    {
-        # Found error message
-    }
-    '^\[Warning]'
-    {
-        # Found warning message
-    }
-    default
-    {
-        # Found Info message
-    }
-}
-```
-
-As you can see we can leverage the power of regular expressions to match data via the switch statement.
-
-## -WildCard
-
-Another parameter I tend to abuse is the *-WildCard* which is similar to the *-Like* operator from which it it inherits the matching logic
-
-```powershell
-[string]$logMessage = '[Error] - Exception reported'
-
-switch -Regex ( $logMessage )
-{
-    '*[Error]*'
-    {
-        # Found error message
-    }
-    '*[Warning]*'
-    {
-        # Found warning message
-    }
-    default
-    {
-        # Found Info message
-    }
-}
-```
-
-## Switch advanced usage
-
-Up to know we've learned about the basic switch usage but there is even  more let's see some advanced examples.
-
-### Expressions and multiple matches
-
-We can use a switch statement in conjunction with expressions just like we would with an if/else statement
-
-```powershell
- switch ( ([string]::IsNullOrEmpty($myString)) )
- {
-    $True
-    {...}
-    $False
-    {...}
- }
-```
-
-Multiple matches would work as you probably have already guessed, here I will be taking advantage of PowerShell case insensitivity
-
-```powershell
-    switch ( 'PsCustomObject' )
-    {
-        'pscustomobject' { 'lower case' }
-        'PsCustomObject' { 'camel case' }
-        'PSCUSTOMOBJECT' { 'upper case' }
-    }
-
-    # Output
-    lower case
-    mixed case
-    upper case
-```
-
-## Break and Continue
-
-We've already covered *[break and continue](https://singularvector.github.io/powershell/post%20series%20-%20statements/PowerShell-Return-Continue-Explained/)* and they work similarly with a switch statement.
-
-Let's examine a reworked version of the previous example:
-
-```powershell
-    switch ( 'PsCustomObject' )
-    {
-        'pscustomobject'
-        {
-            'lower case'
-
-            continue
-        }
-        'PsCustomObject'
-        {
-            'camel case'
-
-            continue
-        }
-        'PSCUSTOMOBJECT'
-        {
-            'upper case'
-
-            continue
-        }
-    }
-
-    # Output
-    lower case
-```
-
-See the difference? What is happening here is that our switch statement will run the first match, lower case, and *continue* to the next element exactly as it would happen in an *foreach* loop for example but as there are no more elements to process code will simply move over.
-
-What the break statement will do is exiting the switch statement immediately without processing any further element
-
-```powershell
-    $logMessages = @(
-        'Item is being downloaded'
-        'Warning - Error downloading file'
-        'Error - Error out of disk space'
-        'Notfying admins'
-        '...'
-    )
-
-    switch -Wildcard ($Messages)
-    {
-        'Warning*'
-        {
-            Write-Error -Message $PSItem
-
-            continue
-        }
-        'Error*'
-        {
-            Write-Warning -Message $PSItem
-
-            break
-        }
-        default
-        {
-            Write-Output $PSItem
-        }
-    }
-
-    # Output
-    'Item is being downloaded'
-    'Warning - Error downloading file'
-    'Error - Error out of disk space'
-```
-
-In the above example I have used a mix of *continue* and *break* statements. As you can see PowerShell is printing the first element as well the *Warning* message as it uses a continue statement but once it hits the error message it will stop processing additional elements and will continue with code execution.
-
-## ScriptBlocks
-
-Up to this point we have observed switch while performing *static* comparisons but we can also use a *scriptblock* expression like in the following example:
-
-```powershell
-    $age = 37
-
-    switch ( $age )
-    {
-        {$PSItem -le 18}
-        {
-            'child'
-        }
-        {$PSItem -gt 18}
-        {
-            'adult'
-        }
-    }
-
-    # Output
-    'adult'
-```
-
-## Closing thoughts on the Switch statement
-
-There are still some *edge* uses for the switch statement that I'm not going to cover here as they're rarely used. Maybe that will be material for a future post.
-
-What I find important to highlight that, in addition to being more *elegant* and easier to read, a *switch* statement is usually **faster** than an *if/else* construct due the way PowerShell internally indexes data so try to stick to it whenever possible.
-
-As usual I hope this post helped you and if you feel like I missed something or have any question don't hesitate to leave a comment.
+Reference: [about_Switch](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_switch).

@@ -9,115 +9,57 @@ tags:
   - PowerShell Title Case
 
 toc: true
+last_modified_at: 2026-11-02
 ---
 
-## String convert case
+Python's `str.title()` is a convenient starting point for experimenting with case conversion. In PowerShell, .NET's `TextInfo.ToTitleCase()` provides a similar operation, but neither method knows how a particular person wants their name written.
 
-One of the reasons I love Python is it *comes with batteries included<sup>(TM)</sup>*.
+## Comparison does not change the text
 
-For example to convert a string to title case is as simple as doing this:
-
-```python
-myString = "This IS A string WIth MixeD CaSe"
-
-myString.title()
-
-# Output
-'This Is A String With Mixed Case'
-```
-
-But this is a post about PowerShell so you probably landed here to know how to do this in PowerShell.
-
-## PowerShell string case
-
-Let's start the discussion saying in PowerShell strings are case *insensitive* so the following strings will be identical:
+PowerShell's usual string comparison operators are case-insensitive by default. That does not mean strings lose their case:
 
 ```powershell
-
-$firstString = "A String"
-$secondString = "a strinG"
-
-$firstString -eq $SecondString
-
-$true
+$first = 'A String'
+$second = 'a strinG'
+$first -eq $second
+# True
+$first -ceq $second
+# False
 ```
 
-Most of the times this is not an issue but there are cases, for example when generating DisplayNames for users, where you want to *sanitise* the string so that it will use proper **Title Case**.
+`-ceq` requests a case-sensitive comparison. Neither comparison rewrites the input. Case conversion is a separate operation.
 
-## PowerShell convert string to Title Case
+## Pick the culture deliberately
 
-PowerShell does not natively have a method/cmdlet to convert a string to Title Case but luckily the [TextInfo](https://docs.microsoft.com/en-us/dotnet/api/system.globalization.textinfo.totitlecase?view=netframework-4.8) has a method aptly named **ToTitleCase** that accepts a string as input and produces a *formatted* string that is not necessarily **linguistically correct**.
-
-In PowerShell the *TextInfo* class is accessible via the **Get-Culture** cmdlet
+For display text intended to follow the current user's culture:
 
 ```powershell
-(Get-Culture).TextInfo.ToTitleCase
- 
-OverloadDefinitions
--------------------
-string ToTitleCase(string str)
-```
-
-Here's an example of how we can use this:
-
-```powershell
-$myString = "STRing WIth Mixed CaSe"
-
-# Instantiate required object
 $textInfo = (Get-Culture).TextInfo
-
-# Convert String
-$textInfo.ToTitleCase($myString)
-
-# Output
-String With Mixed Case
+$textInfo.ToTitleCase('STRing WIth Mixed CaSe')
 ```
 
-The above can be expressed like this for brevity:
+For a workflow whose output should follow a known language regardless of the host's locale:
 
 ```powershell
-$myString = "STRing WIth Mixed CaSe"
-
-(Get-Culture).TextInfo.ToTitleCase($myString)
+$culture = [Globalization.CultureInfo]::GetCultureInfo('en-US')
+$text = 'STRing WITH Mixed CaSe'
+$culture.TextInfo.ToTitleCase($text)
+# String WITH Mixed Case
 ```
 
-### Special note on case conversion
-
-As I previously mentioned method not always produces a a *linguistically correct* version of the string, reason for this is pretty simple, algorithm behind it has been created with ease of use and speed in mind.
-What does this means exactly?
-
-In a nutshell not always results will be what you are expecting, let's look at a couple of examples:
+All-uppercase words can be preserved as acronyms. That is why `WITH` remains uppercase. Lowercasing first changes the policy:
 
 ```powershell
-$myString = "STRing WITH Mixed CaSe"
-
-(Get-Culture).TextInfo.ToTitleCase($myString)
+$culture.TextInfo.ToTitleCase($text.ToLower($culture))
+# String With Mixed Case
 ```
 
-In the above example expected output would be *String With Mixed Case* but it will really be **String WITH Mixed Case**, why maybe you're wondering.
+This also changes real acronyms, so use it only if normalising every word is intended. The same culture is used for both stages to avoid an accidental mixture of casing rules.
 
-Answer is method will not convert case for *acronyms* or words all in upper case.
+## Display names need a policy
 
-To workaround this *limitation* you can simply use another string method
+Title casing is a mechanical transformation, not a spelling validator or an editorial title-style guide. It cannot reliably infer name particles, preferred capitalisation, acronyms or the correct treatment of every apostrophe and hyphen across languages.
 
-```powershell
+When generating a directory display name, preserve an authoritative name when one exists. If the organisation requires automatic formatting, define the language, exceptions and review process before applying it to every user. Keep that policy separate from the mechanics of calling `ToTitleCase()`.
 
-$myString = "STRing WITH Mixed CaSe"
-
-# Convert string to lowercase
-$myString = $myString.ToLower()
-
-(Get-Culture).TextInfo.ToTitleCase($myString)
-```
-
-The above will produce the expected output as string is being converted to lowercase before using the ToTitleCase method.
-
-Microsoft has some really valid examples in their documentation to remark the fact conversion is not *perfect* and I am pasting here to reiterate what I already wrote above.
-
-| **Input**                      | Language | Expected result                | Actual result                  |
-| ------------------------------ | -------- | ------------------------------ | ------------------------------ |
-| war and peace                  | English  | War and Peace                  | War And Peace                  |
-| Per anhalter durch die Galaxis | German   | Per Anhalter durch die Galaxis | Per Anhalter Durch Die Galaxis |
-| les naufragés d'ythaq          | French   | Les Naufragés d'Ythaq          | Les Naufragés D'ythaq          |
-
-I hope you'll find the information in this article useful!
+Reference: [TextInfo.ToTitleCase](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.textinfo.totitlecase).

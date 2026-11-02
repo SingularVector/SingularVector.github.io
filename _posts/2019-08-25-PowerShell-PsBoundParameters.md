@@ -9,102 +9,72 @@ tags:
   - Tutorial
   - HowTo
   - PowerShell
+last_modified_at: 2026-11-02
 ---
 
-## PSBoundParameters Automatic variable
+When a function receives a switch, two questions look similar but are different: did the caller supply it, and is it enabled? `$PSBoundParameters` lets us answer the first without guessing from the value.
 
-Automatic variable *PSBoundParameters* is a special [hashtable](https://singularvector.github.io/powershell/PowerShell-HashTables/) containing all parameters that are passed to a script or a **function**.
-
-*PSBoundParameters* can be used to call a subordinate function or cmdlet passing the same parameters.
-PowerShell will automatically [splat](https://singularvector.github.io/powershell%20tips/PowerShell-Command-Splatting/) the hashtable's values instead of having to type each of the parameters individually.
-
-## Get function parameters - The bad way
-
-Let's start defining a dummy function that we will use throughout the article.
+## A bound value can be false
 
 ```powershell
-# Wish it was so easy :-)
-function Start-WorldFix
-{
-  Param
-  (
-    [switch]$Verbose,
-    [string]$IssueName
-  )
+function Get-ChangePlan {
+    [CmdletBinding()]
+    param (
+        [string]$IssueName = 'General maintenance',
+        [switch]$DryRun
+    )
+    [pscustomobject]@{
+        IssueName = $IssueName
+        IssueWasSupplied = $PSBoundParameters.ContainsKey('IssueName')
+        DryRunWasSupplied = $PSBoundParameters.ContainsKey('DryRun')
+        DryRunEnabled = [bool]$DryRun
+    }
+}
 
-  Write-Host -Message 'Fixing the world - Please wait...'
+Get-ChangePlan -DryRun:$false
+```
+
+For that call, `DryRunWasSupplied` is `$true`, but `DryRunEnabled` is `$false`. The default `IssueName` is available as a variable, while `IssueWasSupplied` is `$false`: default parameter values are not automatically entries in `$PSBoundParameters`.
+
+Use the presence check for requirements such as “only overwrite this setting if the caller explicitly supplied it.” Use the actual value when the question is whether an option is enabled. The original article treated those checks as equivalent.
+
+## Common parameters belong to advanced functions
+
+`[CmdletBinding()]` provides common parameters such as `-Verbose`; do not also declare your own parameter named `Verbose` in that advanced function. Use `Write-Verbose` for diagnostic messages and let PowerShell handle their visibility.
+
+## Forward only compatible arguments
+
+A wrapper can pass arguments to another command, but forwarding every key blindly can introduce unsupported parameters or unintended behaviour. Build a separate map of the arguments the target accepts:
+
+```powershell
+function Get-FileList {
+    [CmdletBinding()]
+    param (
+        [string]$LiteralPath = '.',
+        [switch]$Recurse
+    )
+    $forward = @{ LiteralPath = $LiteralPath; File = $true; ErrorAction = 'Stop' }
+    if ($PSBoundParameters.ContainsKey('Recurse')) {
+        $forward['Recurse'] = [bool]$Recurse
+    }
+    Get-ChildItem @forward
 }
 ```
 
-Despite the name the above function will do absolutely nothing but we specified two **parameters** that can optionally be used together with the function.
+Here the default path is intentionally included even when it was not explicitly bound. The target receives only its own parameters. Building a new map also avoids mutating the record of what the caller supplied.
 
-*How do I know which, if any, parameters have been used?* you are maybe wondering.
-
-A lot of time, and yes I did this a lot as well, this is what's in the code:
+## Inspect names without leaking values
 
 ```powershell
-if ($Verbose)
-{
-  Write-Verbose -Message 'You used the -Verbose paraemter'
+function Get-SuppliedParameterNames {
+    param ([string]$Name, [switch]$Enabled)
+    $PSBoundParameters.Keys | Sort-Object
 }
+Get-SuppliedParameterNames -Name 'Example' -Enabled:$false
+# Enabled
+# Name
 ```
 
-While this will work, as the title implies, there are better alternatives. 
+Dumping the entire dictionary can expose passwords, tokens or other sensitive arguments. For routine diagnostics, log names or selected nonsecret values rather than serialising every bound value.
 
-## Get function parameters - PSBoundParameters the good way
-
-*PSBoundParameters* being an hashtable allows us a lot of flexibility in checking if a parameter has been specified.
-
-```powershell
-# Method 1
-switch ($PSBoundParameters.Keys)
-{
-  'Verbose'
-  {
-    Write-Verbose -Message 'You used the -Verbose paraemter'
-  }
-  'IssueName'
-  {
-    Write-Host -Message 'You used the -IssueName parameter'
-  }
-}
-
-# Method 2
-if ($PSBoundParameters['Verbose'])
-{
-  # Take action
-}
-
-# Method 3
-if ($PSBoundParameters.ContainsKey('Verbose'))
-{
-  # Take action
-}
-```
-
-Personally I'm fan, abuser would maybe more appropriate, of *method 1* as it makes easy for me to dynamically build commands but any other of the illustrate examples will equally do.
-
-Remember **$PSBoundParameters** is an hashtable and we can use this to our advantage like
-
-```powershell
-$PSBoundParameters.Add('Key','Value')
-```
-
-This is specifically handy when calling sub functions or want to alter the flow of the function code.
-
-## PSBoundParameters - Print parameters
-
-If all we want to accomplish is printing which parameter have been specified for a function this is easily accomplished with
-
-```powershell
-foreach ($boundParam in $PSBoundParameters.GetEnumerator())
-{
-  'Key={0} Value={1}' -f $boundParam.Key, $boundParam.Value
-}
-```
-
-Or even simply:
-
-```powershell
-$PSBoundPArameters
-```
+`$PSBoundParameters` describes the parameter binding for the current script/function scope; it is not a list of every local variable. See [about_Automatic_Variables](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_automatic_variables) and [splatting](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_splatting).

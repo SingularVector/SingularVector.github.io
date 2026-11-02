@@ -7,103 +7,80 @@ categories:
 tags:
   - PowerShell
   - Performance Tips
+last_modified_at: 2026-11-02
 ---
 
-Many times when writing a PowerShell script I find myself manipulating lot of strings, for example appending *html* code to a notification mail body, to build what the final value I want to be.
+Building an HTML notification often starts with a few strings and ends with a loop appending hundreds of rows. The operation is the same, but the amount of work changes which approach makes sense.
 
-The most common way of doing this is using *concatenation* with the most common form being something similar to this:
-
-```powershell
-[string]$myString = $null
-
-# Logic here
-
-$myString += $someValue
-
-# Additional logic here
-
-$myString += $someOtherValue
-```
-
-This is perfectly valid PowerShell code and will execute without any issue but there is a catch. **Strings** are immutable objects, this is the same in many languages like Python for example, and as such *read only*.
-
-This is taken from [MSDN](https://docs.microsoft.com/en-us/dotnet/api/system.string?view=netcore-3.1#Immutability) which makes a great job, far better than I can, to explain what is really happening behind the scenes when using the above approach:
-
-> A String object is called immutable (read-only), because its value cannot be modified after it has been created. Methods that appear to modify a String object actually return a new String object that contains the modification.
->
-> Because strings are immutable, string manipulation routines that perform repeated additions or deletions to what appears to be a single string can exact a significant performance penalty. Although the code appears to use string concatenation to append a new character to the existing string named str, it actually creates a new String object for each concatenation operation.
-
-*TLTR* **It's magic.**
-
-I am just joking of course but we can easily benchmark the above statement with a code similar the following:
+## Use interpolation for small messages
 
 ```powershell
-# Iterate 100000 and add text to myString
-Measure-Command {$myString=$null; for($i=0; $i -lt 100000; $i++){$myString+='Some text'}}
-
-Days              : 0
-Hours             : 0
-Minutes           : 0
-Seconds           : 15
-Milliseconds      : 224
-Ticks             : 152242041
-TotalDays         : 0.000176206065972222
-TotalHours        : 0.00422894558333333
-TotalMinutes      : 0.253736735
-TotalSeconds      : 15.2242041
-TotalMilliseconds : 15224.2041
+$userName = 'Daniele'
+$count = 3
+$message = "Found $count items for $userName."
 ```
 
-So is there a better way to implement the above?
-
-## Enter StringBuilder
-
-*StringBuilder* is a class that was designed to solve the issue we just described and documentation can be found [here](https://docs.microsoft.com/en-us/dotnet/api/system.text.stringbuilder?view=netcore-3.1).
-
-To use *StringBuilder* you first need to instantiate an object like this:
+There is no need for a builder just to join a few known pieces. When the pieces already form a collection, `-join` expresses that directly:
 
 ```powershell
-# Crete new string builder
-[System.Text.StringBuilder]$myStringBuilder = [System.Text.StringBuilder]::new()
-
-# Alternative/legacy way
-$myStringBuilder = New-Object -TypeName 'System.Text.StringBuilder'
+$lines = @('First line', 'Second line', 'Third line')
+$text = $lines -join [Environment]::NewLine
 ```
 
-Once the object has been created you can use the *Append* or *AppendLine* methods to concatenate strings, here's an example:
+Use the separator required by the receiving format. For example, a network protocol may specify CRLF rather than the platform's default newline.
+
+## Repeated appends
+
+.NET strings are immutable. Appending with `+=` assigns a new string value; a large loop can spend substantial time allocating and copying text. `StringBuilder` supports a buffer that can grow while you append:
 
 ```powershell
-[void]($myStringBuilder.Append('Text1'))
-[void]($myStringBuilder.Append('Text2'))
+$builder = [System.Text.StringBuilder]::new()
+[void]$builder.Append('Text1')
+[void]$builder.Append('Text2')
+$result = $builder.ToString()
+# Text1Text2
 ```
 
-This will append the desired text to the *StringBuilder* object returning it, so the last step to use our string would be using the *.ToString()* method to retrieve content:
+`Append()` returns the builder itself. Suppress that method result when it is not intended as output from your script or function. `AppendLine()` also adds a newline, so it is not an identical replacement for `Append()`.
+
+## Compare equivalent work
+
+The original 2020 run measured about **15.2 seconds** for repeated `+=` and **239 milliseconds** for the builder. Those were observations from that environment, not a promised ratio on current PowerShell or another machine.
+
+A smaller comparison you can run locally is:
 
 ```powershell
-# Get content from string builder and assign to a string
-[string]$myString = $myStringBuilder.ToString()
+$iterations = 5000
+$piece = 'Some text'
+
+$appendTime = Measure-Command {
+    $concatenated = ''
+    for ($index = 0; $index -lt $iterations; $index++) {
+        $concatenated += $piece
+    }
+}
+
+$builderTime = Measure-Command {
+    $builder = [System.Text.StringBuilder]::new()
+    for ($index = 0; $index -lt $iterations; $index++) {
+        [void]$builder.Append($piece)
+    }
+    $built = $builder.ToString()
+}
+
+if ($concatenated -cne $built) {
+    throw 'The benchmark results differ.'
+}
+[pscustomobject]@{
+    Iterations = $iterations
+    Characters = $built.Length
+    AppendMilliseconds = $appendTime.TotalMilliseconds
+    BuilderMilliseconds = $builderTime.TotalMilliseconds
+}
 ```
 
-The extra code and conversion step is well worth the effort let's see this in action repeating the same example we ran earlier
+The comparison checks identical output and includes the final `ToString()` conversion. Timings still vary with runtime, warm-up, input size and the surrounding workload. Measure representative work before complicating a small string expression for performance alone.
 
-```powershell
-Measure-Command {$myStringBuilder=New-Object -TypeName System.Text.StringBuilder;for($i=0; $i -lt 100000; $i++){$null=$myStringBuilder.Append('Some text')} $myString = $myStringBuilder.ToString()}
+For HTML notifications, joining or buffering text also does not encode inserted values. Escape dynamic content for the HTML context before adding it; that concern is separate from the concatenation method.
 
-Days              : 0
-Hours             : 0
-Minutes           : 0
-Seconds           : 0
-Milliseconds      : 239
-Ticks             : 2394890
-TotalDays         : 2.77186342592593E-06
-TotalHours        : 6.65247222222222E-05
-TotalMinutes      : 0.00399148333333333
-TotalSeconds      : 0.239489
-TotalMilliseconds : 239.489
-```
-
-Can you see the difference? This time command only took **239 milliseconds** compared to *15* seconds it took running this with the *+=* operator.
-
-This could not seem much in a script running unattended but when dealing with larger scripts performing a lot of string concatenation or management this can make a huge difference so keep it in mind when writing your code.
-
-I hope you will find this tip useful.
+References: [StringBuilder](https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder) and [PowerShell performance considerations](https://learn.microsoft.com/en-us/powershell/scripting/dev-cross-plat/performance/script-authoring-considerations).

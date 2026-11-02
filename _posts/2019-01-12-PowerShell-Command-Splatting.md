@@ -8,131 +8,82 @@ tags:
   - Splatting
   - PowerShell Core
   - Command Splatting
+last_modified_at: 2026-11-02
 ---
 
-## PowerShell Command Splatting
+I often see the same administration command repeated in both branches of an `if`, with only one parameter value changed. Splatting lets us build the arguments once and keep the command itself in one place.
 
-When using a PowerShell cmdlet we can use parameters to alter the way it will carry on its assigned task. There are situations where it is desirable using a parameter rather than another depending on the result of another cmdlet output or function return value.
-
-What I see too often is something like this:
+## Pass a parameter map
 
 ```powershell
-# Check return value from function
-if ($userCity)
-{
-  Set-AdUser -Identity $userIdentity -Description "$userCity - Office" -Server $adDsServer
+$copyParameters = @{
+    LiteralPath = './File1.txt'
+    Destination = './File2.txt'
+    ErrorAction = 'Stop'
 }
-else
-{
-  Set-AdUser -Identity $userIdentity -Description 'Office not defined for user' -Server $adDsServer
-}
+Copy-Item @copyParameters
 ```
 
-In the above example if the *$userCity* variable holds a value we set user description with the office name, if not set a default value.
+The hashtable's keys are parameter names; values are the arguments. `@copyParameters` expands that map into the call. `$copyParameters` by itself would pass the dictionary as an ordinary value.
 
-## PowerShell Splatting for Code readability
+This does not create new parameters on `Copy-Item`, or bypass its normal parameter-set checks. A misspelled or incompatible key still fails.
 
-Technically speaking nothing is wrong with the above example, it will work just fine. What if we could make the code more readable while typing less?
+## Choose values before invoking the command
 
-**Command splatting**  is, quoting from [Microsoft Docs](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_splatting?view=powershell-5.1),
-
-> Splatting is a method of passing a collection of parameter values to a command as unit. PowerShell associates each value in the collection with a command parameter. Splatted parameter values are stored in named splatting variables, which look like standard variables, but begin with an At symbol (@) instead of a dollar sign ($). The At symbol tells PowerShell that you are passing a collection of values, instead of a single value.
-
-Here's an example of how a *splatted* command can be written:
+In the original AD example, the description depended on whether a user's city was set:
 
 ```powershell
-# Copy file
-$hashArgs = @{
-  Path = 'File1.txt'
-  Destination = 'File2.txt'
+$userIdentity = 'Test.User'
+$userCity = 'New York'
+$adDsServer = 'dc01.example.com'
+
+$setUserParameters = @{
+    Identity = $userIdentity
+    Server = $adDsServer
+    Description = if ([string]::IsNullOrWhiteSpace($userCity)) {
+        'Office not defined for user'
+    }
+    else {
+        "$userCity - Office"
+    }
+    WhatIf = $true
+    ErrorAction = 'Stop'
 }
-
-Copy-Item @hashArgs
-
-# Non splatted equivalent
-Copy-Item -Path 'File1.txt' -Destination 'File2.txt'
+Set-ADUser @setUserParameters
 ```
 
-This is a simple example but shows how splatting a command can make code easier to read, this when dealing with large scripts and/or long commands can make a huge difference.
+The example requires the ActiveDirectory module and appropriate directory access. `WhatIf` previews the update. Remove that entry only when the target and description have been reviewed for the actual operation.
 
-Going back to our original example we can rewrite the command like this:
+The earlier rewrite changed the city suffix and used inconsistent server variable names. This version keeps the same intended description in both the direct and splatted forms.
 
-```powershell
-# Set user Description
-$setUserHash = @{
-  Identity = $userIdentity
-  Description = $userCity
-  Server = $adServer  
-}
+## Rebuild maps inside a loop
 
-Set-AdUser @setUserHash
-```
-
-## PowerShell Splatting and Dynamic Parameters
-
-Using splatted commands has another big advantage, it allows us to implement *dynamic parameters* that is building our command based on output of a function or value of a variable.
-
-In our *Set-AdUser* example we used an *if else* statement writing twice the same command with a slight variation. What if we need to check for 4 or even 8 different conditions? We would end up writing the same command over and over just with a slight variation in parameters which, in addition to duplication, could lead to typos and errors.
-
-This is where *command splatting* and *dynamic parameters* come into play. It is probably clear by now but splatting is using a **[hashtable](https://singularvector.github.io/powershell/PowerShell-HashTables/)** to build the parameter set and *hashtables* support elements addition.
-
-Rather than using a complex *if else* chain or *switch* statement to build up our command we can rewrite our example like this
+A fresh map prevents a value from the previous user leaking into the next call:
 
 ```powershell
-# Define common parameters
-[hashtable]$setUserHash = @{ }
-$setUserHash.Add('Identity', $userIdentity)
-$setUserHash.Add('Server', $adServer)
-
-# Dynamic parameters
-if ($userCity)
-{
-  $setUserHash.Add('Description', $userCity)
-}
-else
-{
-  $setUserHash.Add('Description', 'Office not defined for user')
-}
-
-# Execute command
-Set-AdUser @setUserHash
-```
-
-This is a much more concise version of our code which leads to easier implementation and maintenance.
-
-## Dynamic Parameters Pitfalls
-
-I will close this post with a small tip to avoid a common mistake we all do. When using a *foreach* loop remember hashtables will only allow you to specify a key **once**.
-
-For example if our hashtable already contains a *Description* key/parameter and we do something like this:
-
-```powershell
-foreach ($user in $matchingUsers)
-{
-  if ($userCity)
-  {
-    $setUserHash.Add('Description', $userCity)
-  }
-  else
-  {
-    $setUserHash.Add('Description', 'Office not defined for user')
-  }
+foreach ($user in $matchingUsers) {
+    $parameters = @{
+        Identity = $user.DistinguishedName
+        Server = $adDsServer
+        Description = if ([string]::IsNullOrWhiteSpace($user.City)) {
+            'Office not defined for user'
+        }
+        else {
+            "$($user.City) - Office"
+        }
+        WhatIf = $true
+        ErrorAction = 'Stop'
+    }
+    Set-ADUser @parameters
 }
 ```
 
-First iteration will go through just fine but on any subsequent iteration you will get an exception like:
+Here `$matchingUsers` is a previously retrieved set of users with their `City` property included. If you deliberately reuse a map, indexed assignment such as `$parameters['Description'] = ...` replaces a value, while `.Add()` rejects an existing key. Remove an optional key when it should be absent, rather than leaving a stale value.
 
-```powershell
-Exception calling "Add" with "2" argument(s): "Item has already been added. Key in dictionary: 'Description'  Key being added: 'Description'"
-At line:1 char:1
-+ $myHash.Add('Description',$userCity)
-+ ~~~~~~~~~~~~~~~~
-+ CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
-+ FullyQualifiedErrorId : ArgumentException
-```
+## Conditional arguments are not dynamic parameters
 
-Solution is to simply remove any dynamic parameter defined as key in our hashtable like this:
+The original article called these “dynamic parameters.” More precisely, they are arguments selected at runtime. PowerShell's `dynamicparam` mechanism is a separate feature for defining parameters whose availability depends on context.
 
-```powershell
-$myHash.Remove('Description')
-```
+For portable scripts, avoid specifying the same parameter in both the map and the explicit command. PowerShell 7.1 added explicit-argument overrides for hashtable splatting; older versions can reject the duplicate. One clearly constructed map is easier to inspect across versions.
+
+Related: [PSBoundParameters]({% post_url 2019-08-25-PowerShell-PsBoundParameters %}) and [about_Splatting](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_splatting).

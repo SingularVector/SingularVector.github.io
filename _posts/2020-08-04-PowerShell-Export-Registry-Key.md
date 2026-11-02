@@ -10,93 +10,49 @@ tags:
 
 header:
     teaser: "/assets/images/export-registry-key/WindowsRegistry.png"
+last_modified_at: 2026-11-02
 ---
 
-Window registry has been for many years the joy and pain of every Windows Systems Administrator and if memory does not fail me it was even part of some of the old NT4 exams (the sweet sting of nostalgia!).
+The Windows registry featured in some of the old NT4 exams, and I still have the book to prove it. Some troubleshooting traditions are hard to retire.
 
 ![MCSE Windows NT](/assets/images/export-registry-key/WindowsNTBook.jpg)
 
-Anyhow as I said at some point or another we all had to deal with the import/export/modification of a registry key on a Windows machine hence this post.
+In the original automation for maintaining an internal Windows CA, I needed to export registry data. There are two different goals: a native `.reg` export that Windows can import, and a structured report for inspection.
 
-I am developing an automation solution to *maintain* an internal Windows CA Server and part of the requirement is exporting some registry keys.
+## Native .reg export
 
-## Method 1 - Regexport
-
-Windows has a built-in utility called **[regexport](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/reg-export)** which was designed for the purpose of exporting registry key and can easily be called from within PowerShell with something like this
+The built-in command is **`reg.exe export`**, not a separate executable named `regexport`. From PowerShell on Windows:
 
 ```powershell
-Invoke-Command  {reg export 'HKLM\SOFTWARE\Microsoft\Office\ClickToRun\Configuration' C:\Temp\MyKeyNackup.reg
+$destination = Join-Path $env:TEMP 'Example-key.reg'
+$reg = Get-Command reg.exe -ErrorAction Stop
+& $reg.Source export 'HKCU\Software\Example' $destination
+$exitCode = $LASTEXITCODE
+if ($exitCode -ne 0) {
+    throw "Registry export failed with exit code $exitCode."
+}
 ```
 
-While this works generally speaking I am not a big fan of calling external executables from within PowerShell for a number of reasons, chief among all the pain to handle return values from the external exe.
+Replace the example key with the local key you need, and run as an identity with read access. The destination directory must exist. Omit `/y` if you want the tool's overwrite prompt; add it only when replacing an existing export is intended.
 
-## Method 2 - Export-Registry PowerShell function
+The native command uses `HKCU\...`, while PowerShell's Registry provider paths use `HKCU:\...`. The original snippet also had an unclosed `Invoke-Command` scriptblock; no remoting wrapper is needed for this local export.
 
-Being confronted with this specific requirement/challenge I decided to come up with something *native*. Result is the *Export-Registry* function which allows export of key both in **XML** and **CSV** format. I've added the latter as I find it handy for reporting purposes.
+`reg export` returns 0 on success and 1 on failure. Do not report success just because the external process started. Under a native-command error policy that already turns a nonzero exit into an error, allow that failure to propagate as well.
 
-You can find the full function code in my [GitHub function repository](https://github.com/SingularVector/PowerShell-Functions) but here's couple of examples.
+## What a .reg file does not capture
 
-```powershell
-# Define registry keys to export
-[array]$registryKey = @('HKCU:\SOFTWARE\Ditto\',
-    'HKCU:\SOFTWARE\GOG.com\Galaxy'
-)
+A `.reg` export is not a full-system or application-consistent backup. In particular, do not treat it as a backup of registry security descriptors or assume that importing it removes values created after the export. Plan and test restoration according to the application or service being protected; a CA recovery plan needs more than selected registry values.
 
-# Export keys and remove any binary data
-Export-Registry -KeyPath $registryKey -ExportFormat xml -ExportPath 'C:\Temp\TestExport.xml' -NoBinaryData
-```
+## XML and CSV reports
 
-The above will check if the specified key exist via the **[Test-IsRegistryKey](https://github.com/SingularVector/PowerShell-Functions/blob/master/Test-IsRegistryKey.ps1)** helper function and once validated export the key in *XML* format.
+My earlier [Export-Registry helper](https://github.com/SingularVector/PowerShell-Functions) provided XML and CSV views of registry data. That can be useful for comparisons and reporting, but these are **not interchangeable with a native `.reg` backup**.
 
-Here's the sample export
+The historical helper also depended on `Test-IsRegistryKey`. Review the version and dependencies before adopting it. Omitting binary values with its `NoBinaryData` option makes the result intentionally incomplete; use that for reporting, not for a restore claim.
 
-```xml
-Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">
-  <Obj RefId="0">
-    <TN RefId="0">
-      <T>System.Management.Automation.PSCustomObject</T>
-      <T>System.Object</T>
-    </TN>
-    <MS>
-      <Obj N="Path" RefId="1">
-        <TN RefId="1">
-          <T>Microsoft.Win32.RegistryKey</T>
-          <T>System.MarshalByRefObject</T>
-          <T>System.Object</T>
-        </TN>
-        <ToString>HKEY_CURRENT_USER\SOFTWARE\GOG.com\Galaxy</ToString>
-        <Props>
-          <I32 N="SubKeyCount">1</I32>
-          <Obj N="View" RefId="2">
-            <TN RefId="2">
-              <T>Microsoft.Win32.RegistryView</T>
-              <T>System.Enum</T>
-              <T>System.ValueType</T>
-              <T>System.Object</T>
-            </TN>
-            <ToString>Default</ToString>
-            <I32>0</I32>
-          </Obj>
-````
+For a report, decide whether you need the root key, descendants, value names, value kinds and the 32-bit or 64-bit registry view. `HKCU` refers to the account running the job, which may differ from the person at the desktop. Those details matter more than whether the output filename ends in `.xml` or `.csv`.
 
-I have truncated the output for brevity but all the data in the registry will be converted and written to the specified XML file.
+Registry data can include application credentials or tokens. The earlier sample included a token-looking value; it has been removed rather than reproduced as example data. Protect real exports according to what they contain.
 
-Here is an example of the same command just using the *CSV* export format
+If you're wondering: yes, I used that NT4 book to prepare for the exam. I also have one dedicated to the registry—relics of an era when you could not simply Google the answer.
 
-```csv
-"Path","Name","Value","Type","Computername"
-"HKEY_CURRENT_USER\SOFTWARE\GOG.com\Galaxy","refreshToken","0_LOM-vC5qCXAivsQ658dYGEmGRFVyZG-QGXB5BOWCXMvtIY4HYxhljzVjnp8y0D","String","WKS2K10"
-```
-
-**Note:** In order to for the **Export-Registry** function to work you will also need to import/download the **Test-IsRegistryKey** one as well.
-{: .notice--danger}
-
-While format is not the native *.reg* of regexport with this approach we can have a much easier and better error and exception handling.
-
-Hopefully you will find this functions as useful as they've been for me!
-
-## Final thoughts
-
-If you're wondering yes, I am that old to own and have used that book to prepare for the NT4 MCSE Exam. I even have somewhere a book completely dedicated to NT4 registry.
-
-Relics of an era when you could not simply *google* for an answer.
+Reference: [reg export](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/reg-export).

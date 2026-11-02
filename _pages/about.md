@@ -35,7 +35,7 @@ My [PowerShell Functions](https://github.com/SingularVector/PowerShell-Functions
 
 I enjoy a good technical discussion, especially when it leads to a simpler solution or catches something I missed.
 
-You can find me on [GitHub](https://github.com/SingularVector) and [LinkedIn](https://www.linkedin.com/in/catanesi/), or [send me an email](mailto:SingularVector@tuta.com). For questions or improvements to a particular tool, an issue or pull request in its repository is the best place to start.
+You can find me on [GitHub](https://github.com/SingularVector) and [LinkedIn](https://www.linkedin.com/in/catanesi/), or [send me an email](mailto:singularvector@tuta.com). For questions or improvements to a particular tool, an issue or pull request in its repository is the best place to start.
 
 ## Supporting Charitable Causes
 

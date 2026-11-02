@@ -11,125 +11,86 @@ tags:
   - Loops
   - PowerShell Return
   - PowerShell Continue
+last_modified_at: 2026-11-02
 ---
 
-## PowerShell return, continue and exit statements
+[The break article]({% post_url 2018-12-31-PowerShell-Break-Explained %}) shows how to stop a loop. `continue` and `return` cross different boundaries: an iteration and the current function, script or scriptblock.
 
-In the previous post [PowerShell break statement - Explained](https://singularvector.github.io/powershell/PowerShell-Break-Explained/) we have seen how we can use the *break* statement to interrupt script execution, we also briefly mentioned other statements like *continue*, *return* and *exit* which we are going to cover in this article.
-
-## Continue statement
-
-Similarly to *break* the **continue** statement is used to alter flow of a loop but instead of forcing flow to immediately quit it will cause next element to be processed.
-
-To illustrate this I will use the same example we used in the previous article for reference only here's the code
+## Continue with the next iteration
 
 ```powershell
-# Count from 0 to 100 but exit as soon you
-# Counter reaches 10
-$myNumber = 0
-
-while ($myNumber -lt 100)
-{
-    Write-Host "This is inside the loop value is $myNumber"
-
-    # Increment
-    $myNumber++
-
-    if ($myNumber -eq 10)
-    {
-        Write-Host "Value is $myNumber - Exiting now!"
-
-        break
-    }
-
-    Write-Host "Value is $myNumber"
-}
-
-Write-Host 'This is outside the loop'
-```
-
-The above code will count from 0 to 100 printing each number in the sequence but we forced it to quit at **10** via the *break* statement.
-
-Here's a slightly different example with the **continue** statement:
-
-```powershell
-# Count from 0 to 10 but exit as soon you
-# Counter reaches 10
-$myNumber = 0
-
-while ($myNumber -lt 10)
-{
-    # Increment
-    $myNumber++
-
-    if ($myNumber -eq 5)
-    {
-        Write-Host "I will not print this number!"
-
+foreach ($number in 1..5) {
+    if ($number -eq 3) {
         continue
     }
-
-    Write-Host "Value is $myNumber"
+    $number
 }
-
-Write-Host 'This is outside the loop'
+# 1, 2, 4, 5
 ```
 
-The above code will produce the following output
+Only the rest of the current iteration is skipped. In a `while` loop, update the state that advances the loop before a `continue` can bypass it; otherwise you can accidentally repeat the same item indefinitely.
 
->Value is 1
->Value is 2
->Value is 3
->Value is 4
->I will not print this number!
->Value is 6
->Value is 7
->Value is 8
->Value is 9
->Value is 10
+Within a `switch`, `continue` skips remaining clauses for the current input and advances to the next input. See [switch examples]({% post_url 2020-07-30-PowerShell-Switch-Statement %}).
 
-As you can see we altered loop flow, number *5* is not printed, without completely interrupting its execution, we simply skipped an element which is very useful in situations like exception handling.
-
-## Return Statement
-
-The **return** statement allows us to *exit* the current scope be it a *function*, *script* or *script block*.
-
-Oversimplifying the concept **return** has a similar effect as the *break* statement but it allows us to return an object as part of the process.
-
-Let's see an example of this with the same code we just used
+## Return from a function
 
 ```powershell
-# Count from 0 to 10 but exit as soon you
-# Counter reaches 10
-$myNumber = 0
-
-while ($myNumber -lt 10)
-{
-    # Increment
-    $myNumber++
-
-    if ($myNumber -eq 5)
-    {
-        return $myNumber
+function Find-FirstEven {
+    param ([int[]]$Numbers)
+    foreach ($number in $Numbers) {
+        if ($number % 2 -eq 0) {
+            return $number
+        }
     }
-
-    Write-Host "Value is $myNumber"
 }
+Find-FirstEven -Numbers 1, 3, 4, 6
+# 4
 ```
 
-The above code will produce the following output
-> Value is 1
-> Value is 2
-> Value is 3
-> Value is 4
-> 5
+The return leaves the function, not just the loop. The final value 6 is never examined. If no even number is found, this function emits no success-stream output; the caller must decide how to represent that outcome.
 
-Number 5 is **returned** as output and not simply printed on screen like other numbers yet the loop will not continue its execution.
+## Output is not restricted to return
 
-This is the basis of working with functions which is something I will better describe in a new post.
+In ordinary PowerShell functions, any unassigned success-stream result is output. `return` does not discard values already emitted:
 
-## Closing Notes
+```powershell
+function Get-DemoResult {
+    'first'
+    return 'second'
+}
+$result = @(Get-DemoResult)
+$result.Count
+# 2
+```
 
-This article concludes our introduction to PowerShell statements and how they can be used to alter flow in our scripts.
+An accidental debug string or an unsuppressed `.Add()` return value can therefore become part of a function's result. Use `Write-Verbose` for diagnostics, and suppress method results you do not intend to return. PowerShell class methods have different return rules; the example above describes ordinary functions.
 
-In a subsequent post series I will describe **Functions** where the *return* statement will be the foundation of our coding.
+## Returning from a pipeline process block
+
+Here `return` ends the scriptblock invocation for the current object; it does not prevent later objects from reaching `ForEach-Object`:
+
+```powershell
+1..3 | ForEach-Object {
+    if ($_ -eq 2) { return }
+    $_
+}
+# 1, 3
+```
+
+This is a different boundary from the function in the previous example. Avoid substituting `break` or `continue` into arbitrary pipeline callbacks; they can affect an enclosing construct or runspace instead of behaving as a per-item skip.
+
+## Exit is an entry-point decision
+
+`exit` is intended for ending a script or session and can set a process exit code, depending on how the script is invoked. It is not a substitute for returning data from a reusable function. Let a function return a result or throw an error, then let the script entry point decide the job's exit status.
+
+To observe an exit code without closing your current shell, start a separate PowerShell 7 process:
+
+```powershell
+pwsh -NoProfile -Command 'exit 7'
+$LASTEXITCODE
+# 7
+```
+
+This example requires `pwsh` on PATH. Native-exit-code error preferences in recent PowerShell versions can affect how a nonzero code is reported; see [error handling]({% post_url 2019-01-03-PowerShell-Error-Handling %}).
+
+Reference: [about_Return](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_return) and [about_Continue](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_continue).

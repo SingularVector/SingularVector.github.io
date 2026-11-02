@@ -11,179 +11,86 @@ tags:
   - PowerShell Core
   - Variables
   - PowerShell Variables
+last_modified_at: 2026-11-02
 ---
 
-## PowerShell Strongly Typed Variables
+PowerShell lets a variable hold an integer now and a string later. That flexibility is useful, but an automation workflow often has a narrower contract: a retry count should remain an integer even if it came from a text configuration file.
 
-PowerShell is dynamically implicit typed, this is a fact. What does that mean?
-
-Unlike other languages, C# or even C/C++, changing a variable's type won't generate an error. Let's look at an example
+## Values have types
 
 ```powershell
-# Declar an int variable
-$myVar = 1000
-
-# Get type
-$myVar.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     Int32                                    System.ValueType
-
-# Change type dynamically
-$myVar = "Now this is a string"
-
-$myVar.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     String                                   System.Object
+$value = 1000
+$value.GetType().Name
+# Int32
+$value = 'Now this is text'
+$value.GetType().Name
+# String
 ```
 
-In the above example we declared *myVar* with a type of **Int** but afterwards assigned a **String** value. PowerShell did not complain and dynamically converted the variable's type.
+The integer object did not change into a string. The variable was assigned a different object. “Dynamically typed” describes this variable behaviour; it does not mean PowerShell values have no type.
 
-## Implicitly Typed Variables
-
-In addition to allow a runtime conversion PowerShell will usually try its best to guess the *type* of the object we are trying to instantiate and use.  As an example, writing something like this
+## Constrain the variable
 
 ```powershell
-$myArray = @(1,2,'Test')
+[int]$retryCount = 3
+$retryCount = '5'
+$retryCount.GetType().Name
+# Int32
 ```
 
-Will tell PowerShell we're trying to create an Array which can be easily verified with
+A type constraint attempts conversion on later assignments. The text `'5'` is convertible; arbitrary text such as `'many'` is not. A failed conversion leaves the previous value in place, so handle the error rather than continuing as though the new value was accepted.
+
+A typed string illustrates a different trade-off:
 
 ```powershell
-$myArray.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     Object[]                                 System.Array
+[string]$message = 'Waiting'
+$message = Get-Date
+$message.GetType().Name
+# String
 ```
 
-This is different from what we have in strongly typed languages, like C# for example, where you cannot declare a variable without also specifying the data type it will contain.
+The date is converted to text. That preserves the declared type but loses the original date object and introduces formatting considerations. A type constraint is not proof that the value has the business meaning you intended.
 
-Just as an example here's how we would declare a string and integer variable in C#
-
-```c#
-string myString = "Some String";
-int myInt = 10;
-
-// This will generate a compilation error
-anotherString = "Other text";
-
-// This will also generate a compilation error
-myInt = "A string" // We cannot implicitly convert an Int to String
-```
-
-## Strongly Typed Variables
-
-If you downloaded any of my Gist or functions from [my repository](https://github.com/SingularVector?tab=repositories) you probably have noticed that I do use a lot **strongly typed variables**, but before proceeding any further let me clarify *this is not required by PowerShell but it is what I consider a good coding practice*.
-
-So how do we define a *strongly typed* variable? In reality this is not very different from what we have seen in the small C# example, for example to declare a *string* variable we would write code like this:
+## Casting one expression is different
 
 ```powershell
-# Create a string object
-[string]$myVariable = 'This is a strongly typed string'
-
-# Create an array object
-[array]$myArray = @(1,2,'Test')
+$source = '12'
+$converted = [int]$source
+$source.GetType().Name
+# String
+$converted.GetType().Name
+# Int32
 ```
 
-Main difference between the above example and what we have seen earlier is we're *telling* PowerShell the type of data we will be storing in the variable without having it do the guesswork.
+`[int]$source` converts that expression. `[int]$source = ...` applies a constraint to the variable. The distinction matters when checking which later assignments are allowed.
 
-As I already said this is not strictly required by PowerShell rules but it is what I consider a good coding habit and I can assure the extra typing will be paying in both **code readability** and **ease of debugging** when doing a code review or trying to figure out what went wrong with a script.
-
-First of all when using strongly typed variables it does not matter how many lines our script is composed of we will always know which *properties* and *methods* are available and can be applied to a specific variable. As an example a *string* object will always have a *length* property or a *ToLower* method, the same holds true for all other values like *int*, *arrays* and so on.
-
-To illustrate the second aspect of strongly typed variables let me quote what I wrote earlier
-
-> ...we declared *myVar* with a type of **Int** but afterwards assigned a **String** value. PowerShell did not complain and dynamically converted the variable's type...
-
-PowerShell normally allows us to change data type stored in a variable at runtime, while this flexibility can be handy sometime it also has potential to introduce issues in our code. When we're using strongly typed variables **PowerShell will not allow us to change data type** without creating a new variable with the correct data type in it.
-
-Let's see this behavior in action using an implicitly typed variable
+You can replace a constraint deliberately with another typed assignment; it is not necessary to invent a new variable name:
 
 ```powershell
-# Implicitly typed variable
-$myVariable = 'This is now a string'
-
-# Get Type
-$myVariable.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     String                                   System.Object
-
-# Assign new value
-$myVariable = Get-Date
-
-# Get Type
-$myVariable.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     DateTime                                 System.ValueType
+[int]$value = 10
+[string]$value = 'A deliberate change of contract'
 ```
 
-In the above example *$myVariable* is initially created as a *string* but after we assign content of the *Get-Date* cmdlet it is automatically converted to a *DateTime* object. This is behaviour is not an issue per se, it is just the way PowerShell works, but can create unexpected results if it is not properly handled in script code.
+For clarity, avoid changing a variable's role partway through a long function, even though the language permits it.
 
-Rewriting the above example using strongly typed variables will yield a different result
+## Parameters also need validation
+
+A type describes representation; validation describes accepted values:
 
 ```powershell
-# Implicitly typed variable
-[string]$myVariable = 'This is now a string'
-
-# Get Type
-$myVariable.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     String                                   System.Object
-
-# Assign new value
-$myVariable = Get-Date
-
-# Get Type
-$myVariable.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     String                                   System.Object
+function Get-RetryDelay {
+    param (
+        [ValidateRange(1, 10)]
+        [int]$Attempt
+    )
+    [Math]::Min(60, $Attempt * 5)
+}
+Get-RetryDelay -Attempt 3
+# 15
 ```
 
-As it is possible to see in the above example the *$myVariable* data type did not change and output of the *Get-Date* cmdlet was automatically converted to a string object. The above is possible as the *Get-Date* cmdlet has a *toString* method but if we tried to something *illegal* like assigning a string to an *Int* value we would get an error
+A negative integer is still an integer, but this function rejects it because it violates the contract. Use explicit parsing for external data when culture and formatting matter; see [string-to-date conversion]({% post_url 2020-08-03-PowerShell-Convert-String-To-Datetime %}).
 
-```powershell
-[int]$myIntVariable = 100
+I use explicit types where they make a script's intent easier to see during review. They are especially useful at input boundaries and for typed collections. They do not replace clear names, validation or error handling, and do not automatically make every local variable safer.
 
-$myIntVariable = 'String Value'
-
-Cannot convert value "String Value" to type "System.Int32". Error: "Input string was not in a correct format."
-At line:1 char:1
-+ $myIntVariable = 'String Value'
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-+ CategoryInfo          : MetadataError: (:) [], ArgumentTransformationMetadataException
-+ FullyQualifiedErrorId : RuntimeException
-```
-
-PowerShells is protecting us from carrying on an illegal operation like assigning a string value to an int variable, keep in mind PowerShell is smart enough to handle situations like this 
-
-```powershell
-[int]$myIntVariable = 100
-
-$myIntVariable = '5' # This is a string value
-
-Write-Host $myIntVariable
-
-5
-
-$myIntVariable.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     Int32                                    System.ValueType
-```
-
-What happened is PowerShell called the *ToInt32* method on the *string* value we specified and converted value to an int.
-
-On a closing note I want to call you attention on a small detail, you need to specify the data type for a variable **only once** when you declare the variable, while there is nothing stopping you from using the notation *[DataType]$variableName* for each occurrence this is not strictly necessary and would only lead to extra typing.
+References: [about_Variables](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_variables) and [about_Type_Conversion](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_type_conversion).

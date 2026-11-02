@@ -11,173 +11,98 @@ tags:
   - Hashtables
   - PowerShell Arrays
   - Dictionaries
+last_modified_at: 2026-11-02
 ---
 
-## PowerShell Hashtables
+Hashtables played a large part in the first substantial automation script I wrote. They remain useful when a value has a meaningful lookup key, rather than just a position in a list.
 
-**Hashtables**, *Dictionaries*, *Associative Arrays* or simply *Hash* are an invaluable tool in PowerShell development even if sometimes they pose some challenges for beginners.
-
-I love **hashtables** for their speed and flexibility or simply because they played a huge role in the first *serious* automation script I wrote back at the time.
-
-## Hashtables - An Introduction
-
-In this section I will give you a quick rundown of *PowerShell Hashtables* how they are created, how to add elements and how to update them.
-
-### Creating a Hashtable
-
-At the very core a *hashtable* is nothing else than a collection of items of the same or different type. Does it sound familiar? If it rings a bell probably it has to do with the fact the same concept applies to **[arrays](https://singularvector.github.io/powershell/PowerShell-Arrays/)** with a key difference. A **hashtable** stores each value (or object) using a **key**.
-
-Here's an example which should make this clearer:
+## Create, read and update
 
 ```powershell
-# Array
-[array]$myArray = @(
-'Element 1',
-'Element 2',
-'Element 3'
-)
+$ages = @{
+    John = 31
+    Jim = 42
+    Jane = 35
+}
+$ages['Jane']
+# 35
+$ages['Jane'] = 36
+$ages.Add('Jo', 28)
+```
 
-# Hashtable
-[hashtable]$myHashtable = @{
-    1 = 'Element 1';
-    2 = 'Element 2';
-    3 = 'Element 3'
+Each key must be unique. `.Add()` fails if it already exists; indexed assignment creates a key or replaces its existing value. PowerShell's ordinary hashtable literals use case-insensitive string keys, so `Jane` and `jane` refer to the same entry in this example.
+
+Use `.ContainsKey()` to distinguish a missing entry from a present entry whose value is `$null`:
+
+```powershell
+$settings = @{ Proxy = $null }
+$settings.ContainsKey('Proxy')
+# True
+$settings.ContainsKey('Timeout')
+# False
+```
+
+An ordinary hashtable does not promise an insertion order. Use `[ordered]@{...}` when presentation order matters, and do not cast it back to `[hashtable]` if you need to retain that behaviour.
+
+## A lookup table in an AD workflow
+
+In one customer automation, a Help Desk operator selected a city in a web interface and a back-end script moved the user to the appropriate OU. The lookup was the useful part: city names mapped to configured destination DNs.
+
+```powershell
+$ouByCity = @{
+    'New York' = 'OU=New York,DC=example,DC=com'
+    'Los Angeles' = 'OU=Los Angeles,DC=example,DC=com'
+    'Chicago' = 'OU=Chicago,DC=example,DC=com'
+}
+$userCity = 'New York'
+$userIdentity = 'Test.User'
+
+if (-not $ouByCity.ContainsKey($userCity)) {
+    throw "No destination OU is configured for '$userCity'."
 }
 
-# Empty Hashtable
-[hashtable]$myOtherHashtable = @{ }
+$user = Get-ADUser -Identity $userIdentity -ErrorAction Stop
+Move-ADObject -Identity $user.DistinguishedName -TargetPath $ouByCity[$userCity] -WhatIf -ErrorAction Stop
 ```
 
-Notice how arrays use *parentheses* while hashtables use *braces* and also a hashtable organises values in pairs *key/value*.
+This requires the ActiveDirectory module, a reachable DC and appropriate rights. `-WhatIf` previews the move; it does not verify that a later move will succeed. Review the destination before removing it. The original `Move-ADUser -DestinationPath` command was incorrect: moving the directory object uses `Move-ADObject -TargetPath`.
 
-### Adding Elements to a Hashtable
-
-Hashtables are *dynamic* in the sense you can easily add elements to them out of the box, syntax is really simple
+## Nested data
 
 ```powershell
-# Create hashtable
-[hashtable]$myHashTable = @{ }
-
-# Add element to hash
-$myHashTable.Add( 'John', 31 )
-$myHashTable.Add( 'Jim', 42 )
-$myHashTable.Add( 'Jane', 35 )
-
-$myHashTable
-
-# Output
-Name                           Value
-----                           -----
-2                              Element 2
-1                              Element 1
-```
-
-**Note:** Remember that each *key* in the hashtable must be **unique**
-
-### Accessing Elements in a Hashtable
-
-Similar to adding new elements even accessing existing ones is really easy. Let's assume we want to store *Jane's* age in a variable, we already know it is in our hashtable so we would use the following syntax
-
-```powershell
-$age = $myHashTable['Jane']
-
-$age
-
-35
-```
-
-### Update Elements in a Hashtable
-
-Hashtables support updating values stored with the following syntax
-
-```powershell
-$myHashTable['Jane'] = 36
-```
-
-As you can see we use the same *brackets* syntax that is used to specify hashtable key follows by the value we want to assign to it, think of this as accessing an *array* via its index value.
-
-## Hashtables Practical Use
-
-Now that we've introduced most important concepts about *hashtables* we can go through their usage and some advanced scenarios.
-
-### Hashtables as Lookup Tables
-
-One common use for hashtables is to create lookup tables, here's a practical example of this
-
-```powershell
-# Create an hashtable with OUs DN
-[hashtable]$ouPath = @{
-    'New York' = 'OU=New York,DC=Domain,DC=com'
-    'Los Angeles'   = 'OU=Los Angeles,DC=Domain,DC=com'
-    'Chicago'  = 'OU=Chicago,DC=Domain,DC=com'
-}
-
-# Define user City
-[string]$userCity = 'New York'
-
-Move-AdUSer -Identity $user -DestinationPath $ouPath[$userCity]
-```
-
-As you can see the hashtable contains DNs for some OUs in our AD structure. We assign the *$userCity* variable a value and finally use that to find correspondent DN for the destination OU. 
-
-The above example is based on a real automation script I have delivered for a customer. Help Desk operator would select a value from a dropdown in a web interface and a back-end script would move the user to the appropriate OU.
-
-### Nested Hashtables
-
-Hashtables can also be nested inside other hashtables this can be useful when modeling data around the object we need to represent and manage, extending the previous example we could create the following nested hashtable:
-
-```powershell
-# Create nested hashtable
-[hashtable]$ouPath = @{
-    'New York' = 'OU=New York,DC=Domain,DC=com'
-    'Los Angeles'   = 'OU=Los Angeles,DC=Domain,DC=com'
-    'Chicago'  = 'OU=Chicago,DC=Domain,DC=com'
-    'Location Details' = @{
-      'countryCode' = '840'
-      'ISO Code' = 'US'
+$location = @{
+    City = 'New York'
+    Details = @{
+        CountryCode = 840
+        IsoCode = 'US'
     }
 }
-
-# Display content
-$ouPath
-
-Name                           Value
-----                           -----
-Los Angeles                    OU=Los Angeles,DC=Domain,DC=com
-Location Details               {ISO Code, countryCode}
-New York                       OU=New York,DC=Domain,DC=com
-Chicago                        OU=Chicago,DC=Domain,DC=com
-
-# Display sub hash
-$ouPath.'Location Details'
-
-Name                           Value
-----                           -----
-ISO Code                       US
-countryCode                    840
-
-$ouPath.'Location Details'.'countryCode'
+$location['Details']['IsoCode']
+# US
 ```
 
-### Exporting Hashtables to CSV
+Bracket notation is explicit about key access, especially when a key has spaces or shares a name with a dictionary member such as `Keys` or `Count`.
 
-One task in the past I've struggled with is exporting hashtables content to CSV, if you need to carry on such task this can be accomplished like this
+## Choose the CSV shape
+
+For one row whose columns are the keys, convert the map to an object:
 
 ```powershell
-$ouPath | ForEach-Object{ [pscustomobject]$_ } | Export-CSV -Path $csvPath
+$record = [ordered]@{ City = 'New York'; CountryCode = 840 }
+[pscustomobject]$record | Export-Csv -LiteralPath './location.csv' -NoTypeInformation
 ```
 
-### Converting Hashtables to string
-
-When using a [log function](https://github.com/SingularVector/New-LogEntry) that writes data to a log file on disk we cannot simply output the hashtable to the log message but first need to convert it to a proper string format which can be achieved like this
+For one row per key/value pair, enumerate the entries instead:
 
 ```powershell
-# Convert hashtable to string format
-[string]$hashString = ($ouPath | Out-String).Trim()
+$ages.GetEnumerator() |
+    Sort-Object Key |
+    Select-Object @{Name='Name'; Expression={$_.Key}}, @{Name='Age'; Expression={$_.Value}} |
+    Export-Csv -LiteralPath './ages.csv' -NoTypeInformation
 ```
 
-This will output hashtable content to the *Out-String* cmdlet and save content to a variable that can be then used to write content to log file.
+A nested hashtable is not automatically flattened into relational CSV columns. Choose an explicit schema for nested data; `ConvertTo-Json -Depth` can be more suitable when the receiving system expects a hierarchy.
 
-### Closing Notes
+`Out-String` produces human-readable formatting, not a stable interchange format. Use it for diagnostics only when that is the intended output, and avoid logging secret values from a configuration map.
 
-Hashtables are a fascinating and very powerful topic, there are some more advanced topics that I did not cover in this post like converting from or to json objects but I will save that for another article.
+References: [about_Hash_Tables](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_hash_tables) and [Move-ADObject](https://learn.microsoft.com/en-us/powershell/module/activedirectory/move-adobject).

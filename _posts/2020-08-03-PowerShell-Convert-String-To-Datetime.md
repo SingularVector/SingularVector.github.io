@@ -10,73 +10,71 @@ tags:
 
 header:
     teaser: "/assets/images/string-to-datetime/BackToTheFuture.png"
+last_modified_at: 2026-11-02
 ---
 
-## Fun with time in PowerShell
+Dates become troublesome when an automation receives a string such as `02/09/2020`. Is that 2 September or 9 February? The date itself is not ambiguous; the string's format contract is.
 
-PowerShell makes it very easy to *have fun* with dates and time which is really handy, for example, when creating logs timestamps or generating users expiration date in an AD environment.
-
-```powershell
-# Get current date and add 30 days
-[datetime]$expirationDate = (Get-Date).AddDays(30)
-
-# Output
-Wednesday, September 2, 2020 4:45:19 PMM
-```
-
-As you can guess from the [strong typed variable](https://singularvector.github.io/powershell/coding%20habits/powershell%20best%20practice/PowerShell-Strongly-Typed-Variables/) *expirationDate* is a [datetime](https://docs.microsoft.com/en-us/dotnet/api/system.datetime?view=netframework-4.8) object and such it supports properties and methods one of which is *.ToString()* which will convert object to a string.
+## Keep dates as dates while calculating
 
 ```powershell
-# Get String from datetime
-$expirationDate.ToString('MM/dd/yyyy')
-
-09/02/2020
-
-# Get date string in other formats
-$expirationDate.ToString('dd.MM.yyyy')
-
-# Swiss format
-02.09.2020
-
-$expirationDate.ToString('dd/MM/yyyy')
-
-# Italian format
-02/09/2020
+$expirationDate = (Get-Date).AddDays(30)
+$expirationDate.GetType().Name
+# DateTime
 ```
 
-## From date to string and back
+Format a string when you need to display or export it. Do not convert to text early and then rely on a later machine to guess the format back.
 
-Converting from *datetime* to a string is easy but what if we have a date in string format, for example coming from a SQL query or an AD attribute, and we need to convert it back to a datetime object to, say, perform comparison or calculations?
-
-This is easily accomplished via the **ParseExact** method of the datetime object. Building from the previous example let's assume our date string is **02/09/2020**
+## Parse a known format and culture
 
 ```powershell
-# Parse and convert string
-$testConversion = [datetime]::ParseExact('02/09/2020', 'dd/MM/yyyy', $null)
-
-$testConversion
-
-Wednesday, September 2, 2020 12:00:00 AM
-
-# Get type
-PS C:\Users\dc.sys> $testConversion.GetType()
-
-IsPublic IsSerial Name                                     BaseType
--------- -------- ----                                     --------
-True     True     DateTime                                 System.ValueType
+$culture = [Globalization.CultureInfo]::InvariantCulture
+$date = [datetime]::ParseExact('02/09/2020', "dd'/'MM'/'yyyy", $culture)
+$date.ToString('yyyy-MM-dd', $culture)
+# 2020-09-02
 ```
 
-Note how the object has been converted to **DateTime** as expected. A common pitfall in the process is the *second* argument to the **ParseExact** method as the specified *date format* must match that of the input string.
+The quoted slashes require literal `/` characters; an unquoted `/` in a custom date pattern is the culture's date-separator placeholder. `MM` means month, while `mm` means minutes. Numeric month/day order still has to come from the input specification.
 
-**Note:** Both arguments can of course be variables as long as they're in the correct format and not **$null**
-{: .notice--primary}
-
-A neat feature of the **ParseExact** method is that you can even output another string with a different date format.
+If month names are present, select their actual language rather than relying on the host's current culture:
 
 ```powershell
-# Parse input and output string in the desired format
-[datetime]::parseexact($invoice, 'dd-MMM-yy', $null).ToString('yyyy-MM-dd')
-
-# Output
-2020-09-02
+$english = [Globalization.CultureInfo]::GetCultureInfo('en-US')
+$date = [datetime]::ParseExact('02-Sep-2020', 'dd-MMM-yyyy', $english)
+$date.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+# 2020-09-02
 ```
+
+A four-digit year avoids the additional rules involved in interpreting two-digit years. The original example passed `$null` as the provider, which meant current-culture behaviour rather than a portable format guarantee.
+
+## Validate input without a parsing exception
+
+For data that may contain invalid values, use `TryParseExact` and check its Boolean result:
+
+```powershell
+$inputDate = '31/02/2020'
+$parsedDate = [datetime]::MinValue
+$valid = [datetime]::TryParseExact(
+    $inputDate,
+    "dd'/'MM'/'yyyy",
+    [Globalization.CultureInfo]::InvariantCulture,
+    [Globalization.DateTimeStyles]::None,
+    [ref]$parsedDate
+)
+if ($valid) {
+    $parsedDate
+}
+else {
+    Write-Warning "Invalid date for the expected format: '$inputDate'."
+}
+```
+
+Do not use `$parsedDate` as an accepted value when `$valid` is false. A string with the right arrangement of digits can still describe an impossible date.
+
+## Time zones are another part of the contract
+
+A date-only value such as `2020-09-02` contains no time-zone or UTC-offset information. Parsing it does not establish that it represents a UTC instant. For timestamps with offsets, consider `DateTimeOffset` and document how the receiving system expects offsets to be retained or normalised.
+
+Likewise, AD attributes and SQL columns have different native representations; use the documented type or conversion for the attribute/column instead of treating every date-looking value as a formatted string.
+
+References: [DateTime.ParseExact](https://learn.microsoft.com/en-us/dotnet/api/system.datetime.parseexact), [DateTime.TryParseExact](https://learn.microsoft.com/en-us/dotnet/api/system.datetime.tryparseexact) and [custom date/time format strings](https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings).

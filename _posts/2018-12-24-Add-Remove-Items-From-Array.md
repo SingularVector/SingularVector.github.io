@@ -10,136 +10,82 @@ tags:
   - HowTo
 
 toc: true
+last_modified_at: 2026-11-02
 ---
 
-This is a question I get rather frequently so I thought to write an article about it. As the title implies I will show how you can add or remove elements to a PowerShell array once it has been created.
+Adding one item to a collection looks simple until `.Add()` replies “Collection was of a fixed size.” The useful distinction is between an **array**, whose length is fixed, and a mutable list.
 
-## PowerShell Arrays
-
-Let's start with the definition of an array as it comes from PowerShell documentation:
-
-> An array is a data structure that is designed to store a collection of items. The items can be the same type or different types.
-> Beginning in Windows PowerShell 3.0, a collection of zero or one object has some properties of arrays.
-
-Creating an array in PowerShell is really simple and most probably you already did when, for example, getting a list of users from Active Directory
+## Add to an array
 
 ```powershell
-$adUsers = Get-AdUser -Filter '*' -Server $adDomainController
+$items = @(1, 2, 3)
+$items += 4
+$items.Count
+# 4
 ```
 
-The above will return an array of AD objects containing all users matching the used filter.
+This appends to the value held by `$items`; it does not make the underlying array support `.Add()` or `.Remove()`. For a handful of values, this is often clear enough.
 
-Of course you can initialise an empty array with the following syntax
+The original post described every `+=` operation as allocating and copying a new array. That was the important performance consideration in older PowerShell versions, but [PowerShell 7.5 optimised array addition](https://learn.microsoft.com/en-us/powershell/scripting/dev-cross-plat/performance/script-authoring-considerations). Keep the version and workload in mind before applying old benchmark advice.
+
+When collecting the output of a loop, you can avoid repeated additions altogether:
 
 ```powershell
-$myArray = @()
-
-# Specify object type
-[array]$myArray = @()
+$items = @(
+    foreach ($number in 1..4) {
+        $number * 10
+    }
+)
+# 10, 20, 30, 40
 ```
 
-The above will initialise an empty array that we can, for example, fill with an AD query or adding static elements like this
+Each unassigned result inside the loop contributes to the array. Diagnostic messages belong on a separate stream, such as `Write-Verbose`, if they are not meant to become collection entries.
+
+## Use a mutable list
+
+For code that explicitly adds and removes items, a generic list makes that intent clear:
 
 ```powershell
-$myArray = (1,2,3,4,5)
+$items = [System.Collections.Generic.List[int]]::new()
+$items.Add(10)
+$items.Add(20)
+$items.Add(30)
+
+$removed = $items.Remove(20) # Remove the first matching value; returns a Boolean
+$items.RemoveAt(0)          # Remove the item at index zero
+$items.ToArray()
+# 30
 ```
 
-The above will add elements 1 to 5 to *myArray* object instantiating a new object with length of **5**
+`RemoveAt()` takes an index, starting at zero. `Remove()` takes a value. A missing value returns `$false`; an out-of-range index raises an error. Choose `[List[object]]` if the list deliberately contains mixed types.
 
-## PowerShell Add Elements to an Array
+## Working with an older ArrayList
 
-We have seen how to create and assign values to an array but what if we want to add a sixth element to *myArray*? If you try the following
+Existing scripts may use `ArrayList`. Its `.Add()` returns the **index of the new item**, not the collection's length:
 
 ```powershell
-$myArray.Add(6)
+$legacyItems = [System.Collections.ArrayList]::new()
+$firstIndex = $legacyItems.Add('first')
+# $firstIndex is 0; Count is 1
+[void]$legacyItems.Add('second')
+$legacyItems.Count
+# 2
 ```
 
-It will fail with the following exception
+Suppress that return value when it would otherwise leak into a function's output. A generic list's `.Add()` does not return an insertion index.
+
+## Remove items from an array
+
+Filtering constructs a new array from the values you keep:
 
 ```powershell
-Exception calling "Add" with "1" argument(s): "Collection was of a fixed size."
-At line:1 char:1
-+ $myArray.Add(6)
-+ ~~~~~~~~~~~~~~~
-+ CategoryInfo          : NotSpecified: (:) [], MethodInvocationException
-+ FullyQualifiedErrorId : NotSupportedException
+$values = @(10, 20, 20, 30)
+$withoutTwenty = @($values | Where-Object { $_ -ne 20 })
+# 10, 30
 ```
 
-The above exception is thrown as a PowerShell array is a collection of fixed size and error is telling just that, it cannot be extended.
+That removes **all matching values**, unlike `List.Remove()`, which removes the first match. Wrapping the expression in `@(...)` preserves array shape when zero or one result remains.
 
-One common solution is to use the **+=** operator like for example
+I tend to use explicit types where they help communicate what a variable holds. The main decision here is the collection's behaviour: collect pipeline output into an array, or use a list when in-place additions and removals are part of the algorithm.
 
-```powershell
-$myArray += 6
-
-# Print array's length
-$myArray.length
-
-6
-```
-
-When using the *+=* operator what happens under the hood is
-
-- PowerShell creates a new array with the same elements as the old one **plus** the new item
-- PowerShell will overwrite existing array with the new content
-
-All of this is transparent to the user so you won't see any difference. 
-
-## Add Elements to an Array - Enter ArrayList
-
-If you want to avoid all the copying/moving data you can instantiate *myArray* as a **[ArrayList](https://docs.microsoft.com/en-us/dotnet/api/system.collections.arraylist?view=netframework-4.7.2)** which is dynamic and will allow you to add and remove elements on the fly
-
-```powershell
-# Initialize object
-$myArrayList = New-Object System.Collections.ArrayList($null)
-
-# Add elements to list
-[void]($myArrayList.Add(1))
-[void]($myArrayList.Add(2))
-
-# Print array length
-2
-```
-
-Similarly you can remove elements from an ArrayList like this
-
-```powershell
-# Will corresponding item by index
-$myArrayList.RemoveAt(1)
-```
-
-**Note:** Remove method will accept element's value so *1* in the above example refers to the value not the item's index.
-
->Cast to [void] to suppress *Add* method printing new array's length
-
-### Create Array List the alternate way
-
-The above example will call the *New-Object* method to instantiate a new *ArrayList* but this is relatively expensive in terms of computing resources so the above can be rewritten as
-
-```powershell
-[System.Collections.ArrayList]$myArray = @()
-```
-
-In addition to being shorter it has the added benefit of avoiding the negative performance hit of *New-Object* and optimizing code is always a good idea especially when dealing with larger scripts.
-
-As an alternative you can cast PowerShell Array to *ArrayList*
-
-```powershell
-$myArray = [System.Collections.ArrayList]@()
-```
-
-## Closing Notes
-
-When writing code, despite not being required by PowerShell, I try to always declare the object's type as that is helpful to know, at any given moment, Properties and Methods supported by the object so I always write
-
-```powershell
-[string]$myString = 'Some Text'
-```
-
-Rather than 
-
-```powershell
-$myString = 'Some Text'
-```
-
-This is not required by PowerShell but I find it helps code's readability and simplifies working with an object declared 800/900 lines up in the code without having to jump back to variable's declaration.
+Related: [array indexing and empty collections]({% post_url 2019-01-06-PowerShell-Arrays %}) and Microsoft's [array guide](https://learn.microsoft.com/en-us/powershell/scripting/learn/deep-dives/everything-about-arrays).

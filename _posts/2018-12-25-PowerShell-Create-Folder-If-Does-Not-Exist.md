@@ -11,58 +11,51 @@ tags:
 
 toc: true
 comments: true
+last_modified_at: 2026-11-02
 ---
 
-This will be a short post regarding a question I get or see asked rather frequently and that is worth writing about.
+Before writing a log, make sure its destination is actually a directory. A path existing is not enough: a file can occupy the name you intended to use for a folder.
 
-## PowerShell Check if folder exists
-
-Sometimes when interacting with filesystem, for example when writing a log file to disk, it is important making sure destination folder we are going to write files to really exists to avoid PowerShell throwing an exception or, worse, losing data.
-
-PowerShell and PowerShell Core have a native cmdlet to check existence of a given path
+## Check the type of path
 
 ```powershell
-Test-Path -Path 'C:\Temp\'
+$logPath = 'C:\MyLogPath'
+Test-Path -LiteralPath $logPath -PathType Container
 ```
 
-The *Test-Path* cmdlet will take a path as argument and return a *True* (boolean value) if the given path exists. This can easily be used in scripts to check if a given folder exists and create if not like in the following example
+For a filesystem path, `Container` asks for a directory. `-LiteralPath` treats brackets and other wildcard characters as part of the supplied name. A `$false` result is a reason to investigate or create the directory; it is not proof that the parent path is writable.
+
+## Create the directory
+
+For filesystem directories, .NET offers an idempotent operation:
 
 ```powershell
-# Define where to store logs
-[string]$logPath = 'C:\MyLogPath\'
+$logPath = 'C:\MyLogPath'
+$directory = [System.IO.Directory]::CreateDirectory($logPath)
+$directory.FullName
+```
 
-# Create folder if does not exist
-if (!(Test-Path -Path $logPath))
-{
-    $paramNewItem = @{
-        Path      = $logPAth
-        ItemType  = 'Directory'
-        Force     = $true
-    }
+If the directory already exists, this returns its information. It also creates missing parent directories. If a file occupies the path, or access is denied, the operation fails instead of silently turning that condition into a usable log directory.
 
-    New-Item @paramNewItem
+An earlier “check then create” sequence has a race: the filesystem can change between the two commands. Calling `CreateDirectory()` handles the ordinary already-exists case without requiring that separate test. It does not guarantee that a later log write succeeds or that another process cannot change the directory afterward.
+
+For an automation workflow, handle failure at the point where it matters:
+
+```powershell
+try {
+    $directory = [System.IO.Directory]::CreateDirectory($logPath)
+}
+catch {
+    throw "Cannot prepare log directory '$logPath': $($_.Exception.Message)"
 }
 ```
 
-This is something I do so often that I have put it in one of my script templates so not to worry about it every time I write code for a new script.
+I keep directory preparation in script templates because it is easy to forget until the first scheduled run. The important part is retaining a distinct failure path, not shaving a few microseconds off the check.
 
-## Check if folder exists the .Net Way
+## Filesystem APIs and PowerShell providers
 
-The *Test-Path* cmdlet is calling a built-in .Net function under the hood, in case you want to impress your friends the above can be rewritten like this
+`Test-Path` works through PowerShell providers, including the filesystem and the Windows registry. `Directory.CreateDirectory()` is a filesystem API; it does not create registry keys or understand a PowerShell-only custom drive such as `Logs:`. Use an actual filesystem path for the .NET call.
 
-```powershell
-# Define where to store logs
-[string]$logPath = 'C:\MyLogPath\'
+These methods are therefore not universally interchangeable, as the original article suggested. No performance ranking is needed for this small operation; choose the semantics appropriate to the target path.
 
-# Create folder if does not exist
-if (!([System.IO.Directory]::Exists($logPath))
-{
-    [system.io.directory]::CreateDirectory($logPath)
-}
-```
-
-## Closing Notes
-
-The two methods to check if a folder exists I have described in the article are equivalent. Second approach is slightly more performant but risk to make your code less readable.
-
-Given the negligible performance gain I tend to prefer the first method as makes code much clear for somebody who's taking over or modifying my work.
+References: [Test-Path](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/test-path) and [Directory.CreateDirectory](https://learn.microsoft.com/en-us/dotnet/api/system.io.directory.createdirectory).
