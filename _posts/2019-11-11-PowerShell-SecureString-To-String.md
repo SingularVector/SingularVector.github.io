@@ -7,36 +7,40 @@ categories:
 tags:
   - PowerShell
   - PowerShell Functions
+last_modified_at: 2026-11-02
 ---
 
-In my [previous post](2019-11-07-PowerShell-Create-Credential-Object.md) I have described how we can create a *credential object* part of the process involved creating a *secure string* object like this
+Some APIs still require a plain text password even when the calling script holds a `SecureString`. Convert it only at that boundary, and avoid printing or logging the result.
+
+## PowerShell 7
 
 ```powershell
-[string]$userPassword = 'MySuperSecurePassword'
+$securePassword = Read-Host -Prompt 'Password' -AsSecureString
+$plainPassword = ConvertFrom-SecureString -SecureString $securePassword -AsPlainText
 
-# Convert to SecureString
-[securestring]$secStringPassword = ConvertTo-SecureString $userPassword -AsPlainText -Force
+# Pass $plainPassword to the API that requires it.
+# Do not write it to output or logs.
+$plainPassword = $null
 ```
 
-But what if we need to reverse the process? PowerShell has a handy cmdlet aptly named *ConvertFrom-SecureString* with the following syntax
+`-AsPlainText` was added in PowerShell 7. Without that switch, `ConvertFrom-SecureString` produces a serialized representation intended for storage, not the plain text password. Its protection depends on the platform and key options; do not assume the default output is encrypted on non-Windows systems.
+
+## Windows PowerShell 5.1
+
+For compatibility with 5.1, a credential object exposes the password without manual unmanaged-memory allocation:
 
 ```powershell
-ConvertFrom-SecureString -SecureString $secStringPassword
+$securePassword = Read-Host -Prompt 'Password' -AsSecureString
+$credential = [System.Management.Automation.PSCredential]::new('unused', $securePassword)
+$plainPassword = $credential.GetNetworkCredential().Password
+
+# Pass $plainPassword to the API here.
+$plainPassword = $null
+$credential = $null
 ```
 
-The above will produce **an encrypted** standard string, I have described this process in my post [about storing credentials in a script](https://singularvector.github.io/powershell/howto/Store-Credentials-in-PowerShell-Script/#store-encrypted-password-in-an-external-file), which is not what we're looking for.
+The temporary username is not used to authenticate; the object is only a bridge to the password string. Clearing a variable does not guarantee that all copies of an immutable .NET string have been erased from memory. Likewise, passing a password as an external program's command-line argument can expose it through process inspection; prefer the program's supported secret-input mechanism.
 
-To get the *unencrypted* string we will to leverage built-in .Net methods which, while not as straightforward as a cmdlet, will get the job done here's the syntax
+The earlier version of this post allocated a BSTR without freeing it. These examples avoid that allocation. See [ConvertFrom-SecureString](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/convertfrom-securestring) and [NetworkCredential.Password](https://learn.microsoft.com/en-us/dotnet/api/system.net.networkcredential.password).
 
-```powershell
-[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secStringPassword))
-
-# Output
-MySuperSecurePassword
-```
-
-The above will leverage the *[Marshall Class](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.marshal?view=netframework-4.8)* to *convert* a secure string to its *standard and unencrypted* equivalent.
-
-While not very common there are situations, for example when calling an external exe, where *secure string* are not supported and this is an handy way to use them without storing them in clear text in your code.
-
-As usual Microsoft has pretty extensive documentation about the method that you can find [here](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.marshal.securestringtobstr?view=netframework-4.8).
+Related: [Create a credential object]({% post_url 2019-11-07-PowerShell-Create-Credential-Object %}) and [store credentials safely]({% post_url 2019-02-26-Store-Credentials-in-PowerShell-Script %}).

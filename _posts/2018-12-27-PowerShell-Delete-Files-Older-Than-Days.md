@@ -11,112 +11,58 @@ tags:
   - HowTo
   - Delete Files
   - PowerShell Core
+last_modified_at: 2026-11-02
 ---
 
-## The requirement
+Log files are useful until keeping every log forever becomes a disk-space problem. This example selects `.log` files whose **last write time** is more than 90 days ago, including subfolders, then previews their removal.
 
-When dealing with automation it is essential to log each operation taken by scripts so that it is possible to easily find what went wrong and when with a specific script. The downside of maintaining log files is that they take up space on the disk and usually you don't want to keep files around forever.
+That is a retention policy based on modification time, not creation time. Confirm that it matches how your application writes and rotates logs before scheduling a cleanup.
 
-PowerShell allows us to easily delete files older than a specific number of days, in this article I will describe how the process works.
-
-## The goal
-
-Our goal is to find all files under a specific path that have been created more than **90 days** ago. In the article I will use a sample folder with some old files in it to illustrate how the process works.
-
-Before starting to code our solution there are couple of important questions that we need to answer:
-
-- Do we want to recurse in subfolders?
-- Which files shall we remove from folder?
-- What is the retention period?
-
-Here's a scheme of what I will be using in the article:
-
-| Recurse in subfolders        | File Extension           | Retention in Days  |
-| ------------- |:-------------:| -----:|
-| Yes      | .log | 90 days |
-
-## Get Relevant files
-
-Once we have defined requirements it's time to start coding our solution, the first step is getting required variables in place:
+## Select and inspect the files
 
 ```powershell
-[string]$filePath = 'C:\TestCleanup\'
+[string]$filePath = 'C:\TestCleanup'
 [string]$fileExtension = '*.log'
-[int]$fileAge = 90
-[datetime]$ageTimeSpan = (Get-Date).AddDays(-$fileAge)
-```
+[int]$retentionDays = 90
 
-The above will serve as our configuration to instruct the script what to remove. The *$ageTimeSpan* variable is taking our defined file age, 90 days, and subtracting it to the current date so to calculate files' age.
-
-To retrieve a list of relevant files we can use the *Get-ChildItem* cmdlet with desired filters like this:
-
-```powershell
-# Get all matching files
-[array]$filesToPurge = Get-ChildItem -Path $filePath -Filter $fileExtension -File |
-        Where-Object { $_.LastWriteTime -lt $ageTimeSpan }
-```
-
-The above will get all files with an extension of *.log* that have been written more than *90 days* ago (less than current date minus 90 days).
-
-## Process Files to remove
-
-Once we have the list of files all we have to do is cycling through them and remove stale ones which is easily accomplished like:
-
-```powershell
-foreach ($file in $filesToPurge)
-{
-    # Get file full path
-    [string]$fileName = $file.FullName
-
-    # Remove file without confirmation
-    Remove-Item $fileName -Confirm:$false
+if ($retentionDays -le 0) {
+    throw 'Retention must be a positive number of days.'
 }
+
+$cutoff = (Get-Date).AddDays(-$retentionDays)
+$filesToPurge = @(
+    Get-ChildItem -LiteralPath $filePath -Filter $fileExtension -File -Recurse -ErrorAction Stop |
+        Where-Object { $_.LastWriteTime -lt $cutoff }
+)
+
+$filesToPurge | Select-Object FullName, LastWriteTime, Length
 ```
 
-The above code has an issue though. Maybe no file in defined folder is older that the defined time span period while this would not generate any error it is a good idea to add a small clause to our code like this:
+`-Recurse` includes subfolders; remove it to restrict selection to the top folder. `-File` excludes directories, so this does not remove empty folders. `-LiteralPath` treats brackets in the root path as characters rather than wildcard syntax. Hidden files are not included by default.
+
+The cutoff is calculated once. The strict `-lt` comparison keeps files exactly on that boundary. Wrapping the results in `@(...)` provides an array even when zero or one file matches. An empty selection is normal; a missing or unreadable path is an error, and `-ErrorAction Stop` stops this selection rather than silently proceeding with an incomplete scan.
+
+## Preview, then delete
+
+Run this after reviewing the selected paths:
 
 ```powershell
-if ($filesToPurge.Count -gt 0)
-{
-    foreach ($file in $filesToPurge)
-    {
-        # Get file full path
-        [string]$fileName = $file.FullName
-
-        # Remove file without confirmation
-        Remove-Item $fileName -Confirm:$false
+if ($filesToPurge.Count -eq 0) {
+    Write-Host 'No files to purge.'
+}
+else {
+    foreach ($file in $filesToPurge) {
+        Remove-Item -LiteralPath $file.FullName -WhatIf -ErrorAction Stop
     }
 }
-else
-{
-    # Replace with proper logging
-    Write-Host -Object 'No files to purge!'
-}
 ```
 
-You can find the complete code in the following [gist](https://gist.github.com/SingularVector/d73c19c85296b6436d9de33ba25197cc)
+`-WhatIf` reports the intended operations without deleting files. Remove that switch only when the selection is correct and you are ready to delete them. `-LiteralPath` also matters here: a filename such as `service[1].log` must be treated literally.
 
-## Further Script Development
+The deletion loop stops at the first error, for example a locked file or denied access. Earlier successful deletions are not rolled back. Previewing does not prove that later deletion will succeed, and files can change between selection and removal. Use this on rotated logs that the application no longer writes; coordinate cleanup with the application's retention mechanism when files remain active.
 
-The code in this article is just a minimum working example that can be expanded upon to accommodate needs like:
+For a scheduled job, add logging and failure reporting appropriate to your environment. See Microsoft's [Get-ChildItem](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-childitem) and [Remove-Item](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/remove-item) documentation for parameter behavior.
 
-- Scanning multiple paths
-- Ignore or skip specific folders or subfolders
-- Support central configuration
+## Earlier complete script
 
-There are probably more features that could make the script even more useful and I would love to hear what you think could be useful.
-
-I am developing something to accommodate the above requirements as it is something I do rather frequently, it is not quite ready yet but I will share as soon code has been written and tested.
-
-## Update January 5 2019
-
-I have released a complete solution to perform automatic cleanup of files in folders called **Remove-OldFiles.ps1** it does all that I described in the post in addition to support:
-
-- Central configuration
-- Exception notification
-- Custom retention policies
-- Ignored path(s)
-
-You can find source code either [here](https://github.com/SingularVector/Remove-Old-Files) or over [Technet Galleries](https://gallery.technet.microsoft.com/Cleanup-Old-Files-bde3af13)
-
-Hope you can find the script useful and of course if you have any feature you'd like to see implemented don't hesitate to open an issue in Git!
+The [Remove-Old-Files repository](https://github.com/SingularVector/Remove-Old-Files) linked in the January 2019 update contains the earlier configurable solution. Treat it as separate code to review and test; the example above does not validate that repository or the older gist. The retired TechNet Gallery link has been removed.

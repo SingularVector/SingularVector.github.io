@@ -7,64 +7,42 @@ categories:
 tags:
   - PowerShell
   - PowerShell Functions
+last_modified_at: 2026-11-02
 ---
 
-Sometimes when dealing with external data it is required to validate input we are receiving is in the correct format.
-
-Today I needed to validate user input was in the correct format, specifically a GUID, while PowerShell supports generation of new GUIDs easily with the *New-Guid* cmdlet there is no built-in method to validate input or a string is a valid GUID.
-
-Before moving on describing the solution here's you can easily generate GUIDs via PowerShell
+PowerShell can generate a GUID with `New-Guid` or `[guid]::NewGuid()`. To validate a string, use .NET's built-in `Guid.TryParse` instead of maintaining a GUID regular expression:
 
 ```powershell
-# Built in PowerShell cmdlet
-New-Guid
-
-Guid
-----
-a3fc3a10-705b-4177-88e1-d9e2f55ec98f
-
-# Alternate with .Net accellerator
-[guid]::NewGuid()
-```
-
-The above will both generate a valid GUID but when we need to validate input is in the correct format there is no equivalent reason for which I wrote a small function named **Test-IsGuid** which will return *True* is input string is a valid GUID or *False* in case it is not.
-
-You can find the function code in my [function repository](https://github.com/SingularVector/PowerShell-Functions) and here for reference:
-
-```powershell
-function Test-IsGuid
-{
+function Test-IsGuid {
     [OutputType([bool])]
-    param
-    (
-        [Parameter(Mandatory = $true)]
+    param (
+        [AllowNull()]
+        [AllowEmptyString()]
         [string]$ObjectGuid
     )
 
-    # Define verification regex
-    [regex]$guidRegex = '(?im)^[{(]?[0-9A-F]{8}[-]?(?:[0-9A-F]{4}[-]?){3}[0-9A-F]{12}[)}]?$'
-
-    # Check guid against regex
-    return $ObjectGuid -match $guidRegex
+    $parsed = [guid]::Empty
+    [guid]::TryParse($ObjectGuid, [ref]$parsed)
 }
+
+Test-IsGuid -ObjectGuid '4a6b7fcb-f1e4-42c8-ae6f-d3862dbbcbca'
+# True
+Test-IsGuid -ObjectGuid '4444-23-ec-789'
+# False
+Test-IsGuid -ObjectGuid '(CA761232-ED42-11CE-BACD-00AA0057B223)'
+# True
 ```
 
-Here are couple of examples to show how the function works:
+`TryParse` supports the standard GUID representations, including braces, parentheses and the compact form without hyphens. It also accepts surrounding whitespace. The earlier regex could accept mismatched delimiters and inconsistent hyphens; parsing delegates those rules to .NET.
+
+If an input contract requires the hyphenated `D` format, use `TryParseExact`:
 
 ```powershell
-# Test valid guid
-Test-IsGuid -ObjectGuid '4a6b7fcb-f1e4-42c8-ae6f-d3862dbbcbca'
-
-$True
-
-# Test arbitrary string
-Test-IsGuid -ObjectGuid '4444-23-ec-789'
-
-$False
-
-Test-IsGuid -ObjectGuid '(CA761232-ED42-11CE-BACD-00AA0057B223)'
-
-$True
+$parsed = [guid]::Empty
+[guid]::TryParseExact('4a6b7fcb-f1e4-42c8-ae6f-d3862dbbcbca', 'D', [ref]$parsed)
+# True
 ```
 
-Hope you will find this useful!
+Parsing checks representation, not whether the GUID exists in your application or directory. `[guid]::Empty` is syntactically valid; reject it separately if your application requires a nonzero identifier.
+
+References: [Guid.TryParse](https://learn.microsoft.com/en-us/dotnet/api/system.guid.tryparse) and [Guid.TryParseExact](https://learn.microsoft.com/en-us/dotnet/api/system.guid.tryparseexact).

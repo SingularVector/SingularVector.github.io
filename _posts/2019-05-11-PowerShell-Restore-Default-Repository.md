@@ -9,65 +9,28 @@ tags:
   - PowerShell
   - PowerShell Core
   - Tips
+last_modified_at: 2026-11-02
 ---
 
-When installing PowerShell or PowerShell core on a system it comes configured with a default repository for [PowerShell Gallery](https://www.powershellgallery.com/) which can be used to install modules without any further configuration.
+While installing the Az module on my Mac, I once hit a “No match was found” error. `Get-PSRepository` revealed the actual problem: no module repositories were registered.
 
-Yesterday I was installing the [AZ Module](https://docs.microsoft.com/en-us/powershell/azure/new-azureps-module-az?view=azps-2.0.0) on my Mac machine but when trying to install the module all I got was the following error
-
-```powershell
-Install-Module -Name Az
-
-PackageManagement\Install-Package : No match was found for the specified search criteria and module name 'Az'. Try Get-PSRepository to see all available registered module repositories.
-At /usr/local/microsoft/powershell/6/Modules/PowerShellGet/PSModule.psm1:9349 char:21
-+ ...          $null = PackageManagement\Install-Package @PSBoundParameters
-+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-+ CategoryInfo          : ObjectNotFound: (Microsoft.PowerShel\u2026lets.InstallPackage:InstallPackage) [Install-Package], Exception
-+ FullyQualifiedErrorId : NoMatchFoundForCriteria,Microsoft.PowerShell.PackageManagement.Cmdlets.InstallPackage
-```
-
-Issuing a *Get-PSRepository* was yielding the following:
+For **PowerShellGet** commands such as `Install-Module`, check first:
 
 ```powershell
 Get-PSRepository
-
-WARNING: Unable to find module repositories.
-```
-Apparently I accidentally removed the repository from my system and trying to reinstate it using the standard way of registering a new repository like this
-
-```powershell
-$Repository = @{
-    Name = 'PSGallery'
-    SourceLocation = 'https://www.powershellgallery.com/api/v2/'
-    PublishLocation = 'https://www.powershellgallery.com/api/v2/package/'
-    ScriptSourceLocation = 'https://www.powershellgallery.com/api/v2/items/psscript'
-    ScriptPublishLocation 'https://www.powershellgallery.com/api/v2/package/'
-    InstallationPolicy = 'Untrusted'
-}
-
-Register-PSRepository @Repository
 ```
 
-Was just yielding the following [exception](https://singularvector.github.io/powershell/PowerShell-Error-Handling/)
-
-```powershell
-Register-PSRepository : Use 'Register-PSRepository -Default' to register the PSGallery repository.
-```
-
-It turns out to restore the default PowerShell Gallery repository the only required command is
+If `PSGallery` is missing, restore its built-in registration:
 
 ```powershell
 Register-PSRepository -Default
+Get-PSRepository -Name PSGallery
 ```
 
-This will return no output but you can easily verify it worked like this
+Use `-Default` rather than trying to register a custom repository named `PSGallery`. Registration is user-specific, so run these commands as the account that needs to install modules. Leaving the installation policy as `Untrusted` is normal: it enables the repository trust prompt rather than preventing registration.
 
-```powershell
-Get-PSRepository
+If PSGallery is already listed, a missing-module error can have another cause: verify the module name, requested version and network/proxy access before changing repository configuration.
 
-Name                      InstallationPolicy   SourceLocation
-----                      ------------------   --------------
-PSGallery                 Untrusted            https://www.powershellgallery.c…
-```
+`Get-PSResourceRepository` belongs to **Microsoft.PowerShell.PSResourceGet**, which maintains separate repository settings. If your workflow uses `Install-PSResource`, inspect that repository list instead; restoring PowerShellGet's registration does not repair it.
 
-Hope this will help in case you accidentally remove the default PSGallery repository.
+References: [Register-PSRepository](https://learn.microsoft.com/en-us/powershell/module/powershellget/register-psrepository) and [Get-PSResourceRepository](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.psresourceget/get-psresourcerepository).

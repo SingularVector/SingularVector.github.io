@@ -10,40 +10,37 @@ tags:
   - PowerShell Core
   - PowerShell create credential
   - new-object system.management.automation.pscredential
+last_modified_at: 2026-11-02
 ---
 
-There are many cmdlets that take a **[PSCredential](https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.pscredential?view=pscore-6.2.0)** object to run under the context of that specific user.
+A `PSCredential` holds a username and a `SecureString` password. Use it when a cmdlet explicitly accepts credentials; it does not make password authentication available to every service or handle MFA for you.
 
-When running a script interactively this can easily be solved using similar syntax (using *SharePoint Online* cmdlets in the example)
+## Interactive scripts
 
-```powershell
-
-# Open connection to SharePoint Online admin portal
-Connect-SPOService -Url $adminUrl -Credential (Get-Credential)
-```
-
-Unfortunately while this method is very handy it won't work when implementing a script as part of an unattended solution so we have to *instantiate* credential object.
-
-A *credential* object is made up of two parts a **string** representing the username and a **[SecureString](https://docs.microsoft.com/en-us/dotnet/api/system.security.securestring?view=netframework-4.8)** representing the user password.
-
-To create the *SecureString* object the following syntax is used
+The simplest way to obtain the object is to prompt:
 
 ```powershell
-# Define clear text string for username and password
-[string]$userName = 'MyUserName'
-[string]$userPassword = 'MySuperSecurePassword'
-
-# Convert to SecureString
-[securestring]$secStringPassword = ConvertTo-SecureString $userPassword -AsPlainText -Force
+$credential = Get-Credential -Message 'Enter the account required by the target service'
 ```
 
-Once the SecureString object has been created the *PSCredential* object can be created with the following syntax
+Pass `$credential` to the parameter documented by the target cmdlet, often `-Credential`. Check the command's help: the parameter is not universally named `-PSCredential`, and accepting the object does not necessarily mean that the whole command runs as that user.
+
+If you already have a username and need to prompt only for its password, construct the object directly:
 
 ```powershell
-[pscredential]$credObject = New-Object System.Management.Automation.PSCredential ($userName, $secStringPassword)
+$userName = 'CONTOSO\service-account'
+$password = Read-Host -Prompt 'Password' -AsSecureString
+$credential = [System.Management.Automation.PSCredential]::new($userName, $password)
 ```
 
-The resultant *pscredential* object can be passed to any cmdlet requiring/using the **-PSCredential** parameter.
+Both approaches require a person at the prompt. Converting a hard-coded password with `ConvertTo-SecureString -AsPlainText` would still leave the password in the source file and its history.
 
-**Note:** This is just an example so I use a plain text password in my script this is never a good idea or practice in a production environment. If storing credentials in a script is a requirement follow instructions in [this article](https://singularvector.github.io/powershell/howto/Store-Credentials-in-PowerShell-Script/) where I describe alternatives methods which are way more secure than a plain text string. Functions mentioned in the article can be found in my [IT-Toolbox Module](https://github.com/SingularVector/IT-ToolBox)
-{: .notice--primary}
+## Unattended scripts
+
+First check the service's supported automation authentication: managed identity, workload identity federation or certificate-based application authentication may remove the need for a user password. The appropriate choice depends on the service and hosting environment.
+
+For a legacy endpoint that requires a password, retrieve it from a secret store accessible to the automation identity. If the store returns a `PSCredential`, use that object directly; if it returns a `SecureString`, construct the object as above without prompting. The job must be able to authenticate to the store without human intervention.
+
+`SecureString` is a compatibility type, not a secret store; its contents are not encrypted in memory on non-Windows systems. See [Get-Credential](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-credential) and the [SecureString platform note](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/convertfrom-securestring).
+
+For storage options and their limitations, see [Store Credentials in PowerShell Script]({% post_url 2019-02-26-Store-Credentials-in-PowerShell-Script %}).

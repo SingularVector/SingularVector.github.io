@@ -13,41 +13,36 @@ tags:
 toc: false
 header:
     teaser: "/assets/images/PowerShell_Logo.png"
+last_modified_at: 2026-11-02
 ---
 
 A few days ago while developing a cmdlet for an internal module in support to a larger automation workflow I found myself in need to easily derive *UserPrincipalName* of the currently logged on user running the command.
 
-If you look  this up in your favorite search engine chances are you came across results like the following (there are more but these are the more common *suggestions* from users):
+
+The important distinction is the **process identity** versus the person at the desktop. In a scheduled task, service or remoting session those may be different accounts. A username such as `CONTOSO\daniele` is not the same value as a UPN such as `daniele@example.com`; do not construct a UPN by appending a guessed domain.
+
+On Windows, start with the built-in command:
 
 ```powershell
-# 1
-$env:UserName
-
-# 2
-[System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-
-# 3
-[Environment]::UserName
-
-# 4
-$(Get-WMIObject -class Win32_ComputerSystem | select username).username
+whoami /upn
 ```
 
-All the above methods are more or less equivalents and will yield the following results:
+For an account whose UPN Windows can resolve, this returns the UPN for the current security context. It can fail for local accounts or contexts without a resolvable domain UPN; check `$LASTEXITCODE` before using the output in automation.
 
-1. PsCustomObject  - Which is my samAccountName
-2. domain\PsCustomObject - Same as above just with the domain prefix
-3. PsCustomObject - Identical to number 1
-4. domain\PsCustomObject - Identical to number 2
-
-Issue is none of them will easily return the **UserPrincipalName** of the currently logged in user.
-
-This can easily be achieved with the following command:
+For the original **Windows / Active Directory Domain Services** scenario, the SID-based LDAP lookup is another option when a domain controller is reachable:
 
 ```powershell
-([ADSI]"LDAP://<SID=$([System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value)>").UserPrincipalName
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$user = [ADSI]"LDAP://<SID=$sid>"
+$upn = [string]$user.Properties['userPrincipalName'].Value
+if ([string]::IsNullOrWhiteSpace($upn)) {
+    throw 'The current AD account has no userPrincipalName value.'
+}
+$upn
 ```
 
-This command, despite not as user friendly as the other commands, will return the full UPN of the user for example **PsCustomObject@domain.com**.
+This queries the directory attribute rather than assuming an email address or logon name is the UPN. It relies on Windows ADSI and AD DS; it is not a cross-platform or Microsoft Entra-only identity lookup. Handle directory lookup failures in the calling script.
 
-I encourage you to explore the other available methods and properties of the *[System.Security.Principal.WindowsIdentity]* [class](https://docs.microsoft.com/en-us/dotnet/api/system.security.principal.windowsidentity?view=net-5.0) as it can be really handy when trying to get details about the current user.
+`$env:USERNAME` and `[Environment]::UserName` provide a short username; `WindowsIdentity.GetCurrent().Name` normally includes the Windows domain. Querying `Win32_ComputerSystem.UserName` instead targets the interactive desktop user and is not equivalent to querying the current process identity.
+
+See [whoami](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/whoami) and [WindowsIdentity.GetCurrent](https://learn.microsoft.com/en-us/dotnet/api/system.security.principal.windowsidentity.getcurrent).

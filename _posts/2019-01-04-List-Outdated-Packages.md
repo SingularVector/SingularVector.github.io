@@ -10,44 +10,41 @@ tags:
   - Pip
   - Pip Packages
   - Python3
+last_modified_at: 2026-11-02
 ---
 
-Python3 comes with a list of pre-installed packages which are updated from time to time. It is really easy to list any *outdated* package with the following command:
+To list outdated packages for a particular Python environment, invoke pip through that environment's interpreter:
 
-```python
-pip list --outdated
-
-# Output
-Package    Version   Latest     Type
----------- --------- ---------- -----
-astroid    2.0.4     2.1.0      wheel
-certifi    2018.4.16 2018.11.29 wheel
-pylint     2.1.1     2.2.2      wheel
-setuptools 40.0.0    40.6.3     wheel
-six        1.11.0    1.12.0     wheel
+```bash
+python -m pip list --outdated
 ```
 
-As you can see 5 packages on my machine are outdated.
+Here `python` means the interpreter for your project, normally inside an activated virtual environment. Depending on your installation, use `python3` on macOS/Linux or `py -m pip` on Windows. Check the target environment if you are unsure:
 
-To update a specific package to the latest version you can use
-
-```python
-pip install --upgrade  <PackageName>
-
-# Alternatively you can use the short form
-pip install -U <PackageName>
+```bash
+python -m pip --version
 ```
 
-In you don't want to install each update individually you can use *pipdate*
+The list shows installed and available versions. It does not mean every upgrade is compatible with your application or its dependency constraints.
 
-```python
-# Install pipdate
-sudo pip3 install pipdate
+To upgrade one package, for example `requests`:
 
-# Update all packages
-sudo pipdate3
+```bash
+python -m pip install --upgrade requests
+python -m pip check
 ```
 
-**Note for Windows users:** *Pipdate* is already installed by default so you don't need to install it
+`pip check` detects incompatible or missing declared dependencies; run the application's own tests as well. If your project uses a lock file, update it through that project's dependency workflow so that other machines reproduce the change.
 
-**Note for Mac users:** If you installed *Python* via **homebrew** there is no need to use *sudo* to install *pipdate* or upgrade packages
+For a new project, create an isolated environment first:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+On Windows, create it with `py -m venv .venv` and activate it in PowerShell with `.venv\Scripts\Activate.ps1`.
+
+Avoid `sudo pip` and blanket upgrades of the system Python environment. The original post recommended `pipdate` and incorrectly said it came installed on Windows; pip's built-in commands are sufficient for listing outdated packages and upgrading selected ones.
+
+References: [pip list](https://pip.pypa.io/en/stable/cli/pip_list/), [pip install](https://pip.pypa.io/en/stable/cli/pip_install/) and the [Python Packaging guide to virtual environments](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/).

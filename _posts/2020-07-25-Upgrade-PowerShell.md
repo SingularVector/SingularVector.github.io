@@ -9,20 +9,28 @@ tags:
   - HowTo
 
 toc: false
+last_modified_at: 2026-11-02
 ---
 
-When Microsoft releases a new PowerShell 7 version the following message is displayed in terminal/console:
-
-![PowerShell upgrade available](/assets/images/PowerShell-Upgrade.png)
-
-To upgrade to the latest version you can either go to the [PowerShell Releases Page](https://github.com/PowerShell/PowerShell/releases) or use the following command to upgrade directly from the console:
+PowerShell 7 updates depend on how you installed it. On Windows clients, [Microsoft documents WinGet as the recommended installation method](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows). Start by checking what is installed:
 
 ```powershell
-Invoke-Expression "& { $(Invoke-Restmethod https://aka.ms/Install-PowerShell.ps1) } -UseMSI"
+$PSVersionTable.PSVersion
+winget list --id Microsoft.PowerShell --exact
 ```
 
-This will start the download of latest PowerShell 7 version and start the installer directly from the current console:
+If WinGet lists your stable PowerShell installation, update that package:
 
-![PowerShell Installer Page](/assets/images/PowerShell-7-Installer.png)
+```powershell
+winget upgrade --id Microsoft.PowerShell --exact --source winget
+```
 
-The use of the *-UseMSI* parameter will cause installation to immediately start, when you will be asked chose to close application locking required files this will close the current PowerShell session but installation will progress and once it is over latest PowerShell version will be installed.
+Follow any installer prompts, then open a **new** `pwsh` session and run `$PSVersionTable.PSVersion` again. An already running session continues using the version it started with. If WinGet reports no applicable update, check the installed version and package source before trying another installer.
+
+For Windows Server or managed deployments, use the appropriate MSI from the [official installation guide](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows#install-the-msi-package) and follow your deployment process. Store, ZIP and .NET tool installations have different update paths; use the instructions for your installation rather than mixing methods.
+
+On macOS and Linux, follow the update procedure for the package manager or installation method you originally used; see Microsoft's [installation overview](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell).
+
+PowerShell 7 runs alongside Windows PowerShell 5.1. Updating `pwsh` does not replace `powershell.exe`. Test the modules and scripts you depend on before rolling an update out to automation hosts.
+
+The original 2020 example downloaded and immediately executed an installer script with `Invoke-Expression`. The package-based workflow above makes that shortcut unnecessary.

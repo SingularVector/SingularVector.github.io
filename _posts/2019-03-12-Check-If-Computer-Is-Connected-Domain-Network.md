@@ -9,52 +9,43 @@ tags:
   - Domain Network
   - Tips
   - How to check if computer is connected to domain
+last_modified_at: 2026-11-02
 ---
 
-## Remote or Domain Network?
+## The deployment decision
 
-In our connected world sometimes we need to find out if a computer is connected to the domain network or a remote one for example if we need to run a script **only** when user is in the corporate network.
+In an SCCM deployment, I needed to choose between two configurations depending on whether the computer could reach its Active Directory domain over the corporate network or VPN. That choice controlled a registry setting and the configuration applied to the machine.
 
-I had to solve this challenge to accommodate a configuration deployment via SCCM only for users that were physically connected to the domain network via VPN or cable.
+The useful question was whether domain communication worked at that moment. A domain-joined computer can be offline, and a VPN connection alone does not guarantee access to a domain controller.
 
-Luckily enough the [System.DirectoryServices.ActiveDirectory.Domain](https://docs.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectory.domain?view=netframework-4.7.2) class allows us to get this information pretty easily with code similar the following:
+## Test domain communication
 
-```powershell
-[System.DirectoryServices.ActiveDirectory.Domain]::GetComputerDomain()
-```
-
-The above will return information about the forest and domain similar the following if computer can reach a domain controller
+For a **Windows domain member**, `Test-ComputerSecureChannel` checks whether the secure channel with its domain is working. Run it in an elevated Windows PowerShell session, or validate it under the actual SCCM execution account before deployment. This check depends on Netlogon and also tests trust health, so it is stronger than a network reachability probe.
 
 ```powershell
-# Output
-Forest                  : test.lab
-DomainControllers       : {DC01.test.lab}
-Children                : {}
-DomainMode              : Windows8Domain
-DomainModeLevel         : 5
-Parent                  :
-PdcRoleOwner            : DC01.test.lab
-RidRoleOwner            : DC01.test.lab
-InfrastructureRoleOwner : DC01.test.lab
-Name                    : test.lab
-```
-
-On the other hand if computer is connected to a remote network an exception will be returned.
-
-Putting all together this can easily be turned into a script similar the following:
-
-```powershell
-try
-{
-  # Check if computer is connected to domain network
-  [void]::([System.DirectoryServices.ActiveDirectory.Domain]::GetComputerDomain())
-
-  Write-Host 'Domain Network'
+try {
+    $domainAvailable = Test-ComputerSecureChannel -ErrorAction Stop
 }
-catch
-{
-    Write-Host 'Remote Network'
+catch {
+    # An execution error is not proof that the machine is off-network.
+    Write-Error -Message "Domain check could not complete: $($_.Exception.Message)" -ErrorAction Continue
+    return
+}
+
+if ($domainAvailable) {
+    Write-Host 'Domain secure channel is available: select the domain configuration.'
+    # Apply the domain-connected registry value and configuration here.
+}
+else {
+    Write-Warning 'Domain secure channel is unavailable: investigate connectivity or trust.'
+    # Apply an approved fallback only if its policy covers this result.
 }
 ```
 
-Using a simple [Try/Catch](https://singularvector.github.io/powershell/PowerShell-Error-Handling/) block we have our script verify if computer should execute some code or not.
+The registry paths and values are deliberately left to the deployment's configuration policy. A negative result can mean disconnected VPN, DNS/routing problems, an unavailable DC or a broken computer trust relationship; do not label every failure “Remote Network.” The error branch stops this script path rather than silently applying a different configuration.
+
+Do not add `-Repair` to a connectivity check: that changes the machine's domain relationship. This cmdlet is for domain members, not domain controllers or Microsoft Entra-only devices. If the configuration also needs a file share or application endpoint, test that dependency separately; a healthy domain channel does not prove it is reachable.
+
+The earlier `Domain.GetComputerDomain()` example retrieved domain information and treated any exception as a network classification. That was too broad for this deployment decision, and its `[void]::(...)` expression was invalid PowerShell syntax. The explicit test and separate error handling above replace it.
+
+Reference: Microsoft's [Test-ComputerSecureChannel documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/test-computersecurechannel).

@@ -13,35 +13,28 @@ tags:
 toc: true
 header:
   teaser: "/assets/images/PowerShell_Logo.png"
+last_modified_at: 2026-11-02
 ---
 
-## PowerShell Get current date
-
-PowerShell natively supports getting the current, or specific, date via the following cmdlet:
+`Get-Date` returns a `DateTime`. Its `DayOfWeek` property is a .NET enum, displayed as a name such as `Monday`; it is not a string.
 
 ```powershell
-Get-Date
+$date = Get-Date -Year 2022 -Month 2 -Day 21
+$date.DayOfWeek
+# Monday
+
+[int]$date.DayOfWeek
+# 1
 ```
 
-Which, by default, will produce the following output:
+The numeric mapping is **Sunday = 0 through Saturday = 6**, not 1 through 7. Cast to `[int]` rather than accessing the enum's underlying `value__` field.
+
+If a database or report requires Monday = 1 through Sunday = 7, map that explicitly:
 
 ```powershell
-Monday, February 21, 2022 10:11:39 PM
+$isoWeekday = (([int]$date.DayOfWeek + 6) % 7) + 1
 ```
 
-Cmdlet supports methods which can be used to display/return the day of the week for the selected date
+Document which convention you store: the values fit in a SQL `tinyint`, but the column's type alone does not tell readers what Sunday means.
 
-```powershell
-(Get-Date).DayOfWeek
-```
-
-There are situations where rather than returning a string with the day name it can be useful to return the **number** (1 to 7) associated with the day's name, this can easily be accomplished with the following command
-
-```powershell
-(Get-Date).DayOfWeek.value__
-
-# Output
-1
-```
-
-This is especially handy when inserting data into SQL database supporting dates as _TinyInt_ data types.
+See [.NET DayOfWeek](https://learn.microsoft.com/en-us/dotnet/api/system.dayofweek).
