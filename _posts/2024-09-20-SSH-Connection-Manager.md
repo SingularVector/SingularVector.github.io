@@ -12,7 +12,7 @@ tags:
 
 toc: true
 header:
-  teaser: "/assets/images/ssh_logo.jpg"
+  teaser: "/assets/images/ssh-connection-manager/ssh_logo.jpg"
 ---
 
 ## Managing SSH Connections

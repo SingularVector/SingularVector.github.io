@@ -11,7 +11,7 @@ tags:
 
 toc: false
 header:
-    teaser: "/assets/images/Kubernetes_Logo.png"
+    teaser: "/assets/images/shared/Kubernetes_Logo.png"
 last_modified_at: 2026-11-02
 ---
 

@@ -3,7 +3,7 @@ name: Validate GitHub Pages build
 on:
   pull_request:
   push:
-    branches: [upgrade/minimal-mistakes-4.28.1, design/homepage-preview, navigation/topic-hub, content/seo-positioning, content/technical-freshness, content/string-encryption-article, migration/singularvector]
+    branches: [master, upgrade/minimal-mistakes-4.28.1, design/homepage-preview, navigation/topic-hub, content/seo-positioning, content/technical-freshness, content/string-encryption-article, migration/singularvector]
   workflow_dispatch:
 
 permissions:
@@ -35,6 +35,8 @@ jobs:
           test "$(grep -o 'id="results"' _site/search/index.html | wc -l)" -eq 1
       - name: Check SEO metadata and archive links
         run: python3 scripts/check-content-seo.py
+      - name: Check rendered asset references
+        run: python3 scripts/check-article-assets.py
       - name: Retain generated site for inspection
         uses: actions/upload-artifact@v4
         with:

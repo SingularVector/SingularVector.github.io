@@ -105,7 +105,7 @@ analytics:
 # Site Author
 author:
   name             : "SingularVector"
-  avatar           : "/assets/images/pscustomobject.jpg" # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
+  avatar           : "/assets/images/site/pscustomobject.jpg" # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
   bio              : "Systems and infrastructure engineer with 20+ years of experience across Windows, Linux and identity. I build automation that makes complex environments easier to run, maintain and understand."
   location         : "PID 0"
   email            : "SingularVector@tuta.com"
@@ -172,6 +172,7 @@ include:
   - .htaccess
   - _pages
 exclude:
+  - assets/images/README.md
   - "*.sublime-project"
   - "*.sublime-workspace"
   - vendor

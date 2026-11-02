@@ -12,214 +12,57 @@ tags:
 
 toc: false
 header:
-    teaser: "/assets/images/AD_Logo.png"
+    teaser: "/assets/images/shared/AD_Logo.png"
+last_modified_at: 2026-11-02
 ---
 
-In my post [PowerShell - Get users reporting to manager](https://singularvector.github.io/powershell/howto/identity%20management/Active-Directory-Get-Report-Chain/) I have described the different approaches we can use to get a list of users reporting, directly or indirectly, to a specific manager.
+In [Get users reporting to a manager]({% post_url 2020-08-05-Active-Directory-Get-Report-Chain %}), I compared ways to follow AD's `manager` links. I use this often enough that resolving the manager and building the query belong in a reusable function.
 
-In the post I have explained how we can use *LDAP Filter* and *OID* **1.2.840.113556.1.4.1941** to get results in a lightning fast manner.
+The function below uses the ActiveDirectory module and the server-side matching rule `1.2.840.113556.1.4.1941`. It returns users directly or indirectly reporting to the chosen manager, as recorded in AD, not an HR-authoritative organisation chart.
 
-As I find myself doing this rather frequently I have written a small function named **Get-ReportChain** which abstract from the various filters and provides a simple interface to get full direct/indirect reports for a manager.
+## Load and use the function
+
+Download [Get-ReportChain.ps1]({{ '/assets/code/active-directory/Get-ReportChain.ps1' | relative_url }}), review it and dot-source the saved file in a session with the ActiveDirectory module available:
 
 ```powershell
-function Get-ReportChain
-{
-    <#
-        .SYNOPSIS
-            Cmdlet will get a complete report of all users reporting to a specific manager.
+. .\Get-ReportChain.ps1
 
-        .DESCRIPTION
-            Cmdlet will get a complete report of all users reporting to a specific manager.
+Get-ReportChain -SamAccountName 'manager01'
+Get-ReportChain -UserPrincipalName 'manager01@example.com'
+Get-ReportChain -UserDN 'CN=Manager One,OU=Users,DC=example,DC=com'
+```
 
-            By default the following properties are returned:
+Choose one identity form per invocation. A UPN is looked up as a directory attribute; it is not validated with an email regex. A DN is resolved by AD rather than by the old `Test-IsValidDN` helper.
 
-            - SamAccountName
-            - UserPrincipalName
-            - Mail
-            - Manager
-            - DirectReports
+To select a domain controller and output properties:
 
-            Custom properties can be returned via the -Properties parameter
+```powershell
+Get-ReportChain -SamAccountName 'manager01' -DomainController 'dc01.example.com' -Properties SamAccountName, Mail, Manager
+```
 
-        .PARAMETER SamAccountName
-            A string representing the SamAccountName of the mager for which reports should be enumerated.
+The same server is used for manager resolution and the report query. With no `-DomainController`, normal AD cmdlet server selection applies. The function searches that server's default naming context; it does not walk every domain in the forest.
 
-        .PARAMETER UserPrincipalName
-            A string representing the UserPrincipalName of the mager for which reports should be enumerated.
+## Results and errors
 
-        .PARAMETER UserDN
-            A string representing the UserPrincipalName of the mager for which reports should be enumerated.
+By default each result contains `SamAccountName`, `UserPrincipalName`, `Mail`, `Manager` and `DirectReports`. Supply `-Properties` for a different selection; `'*'` requests all available user properties and can be substantially more expensive.
 
-        .PARAMETER DomainController
-            A string representing the name of the domain controller that should be used to query Active Directory.
+No matching reports is a valid empty result. A missing or ambiguous manager lookup and directory access failures raise errors instead of being presented as “no reports.” Handle them separately in a scheduled workflow:
 
-            If parameter is not specified a random domain controller will be automatically used.
-
-        .PARAMETER Properties
-            An array object representing user properties that should be returned as part of the results.
-
-            Result array will be ordered by the Properties parameter.
-
-            If all objects should be returned the * character can be used with the parameter.
-
-        .EXAMPLE
-            PS C:\> Get-ReportChain -UserDN 'value1'
-
-        .OUTPUTS
-            System.Array
-    #>
-
-    [CmdletBinding(DefaultParameterSetName = 'DistinguishedName',
-                   SupportsPaging = $false,
-                   SupportsShouldProcess = $false)]
-    [OutputType([array])]
-    param
-    (
-        [Parameter(ParameterSetName = 'SamAccountNAme',
-                   Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('UserSam', 'SAM')]
-        [string]
-        $SamAccountName,
-        [Parameter(ParameterSetName = 'UserPrincipalName',
-                   Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [Alias('UPN', 'UserUPN')]
-        [string]
-        $UserPrincipalName,
-        [Parameter(ParameterSetName = 'DistinguishedName',
-                   Mandatory = $true)]
-        [Alias('DN', 'DistinguishedName')]
-        [string]
-        $UserDN,
-        [Parameter(ParameterSetName = 'DistinguishedName')]
-        [Parameter(ParameterSetName = 'SamAccountNAme')]
-        [Parameter(ParameterSetName = 'UserPrincipalName')]
-        [ValidateNotNullOrEmpty()]
-        [string]
-        $DomainController,
-        [Parameter(ParameterSetName = 'DistinguishedName')]
-        [Parameter(ParameterSetName = 'SamAccountNAme')]
-        [Parameter(ParameterSetName = 'UserPrincipalName')]
-        [ValidateNotNullOrEmpty()]
-        [string[]]
-        $Properties = @(
-            'SamAccountName',
-            'UserPrincipalName',
-            'Mail',
-            'Manager',
-            'DirectReports'
-        )
-    )
-
-    begin
-    {
-        # Prepare command hash
-        [hashtable]$paramGetUserDn = @{
-            Properties = $Properties
-        }
-
-        # Prepare command hash
-        [hashtable]$paramGetADReportChain = @{
-            Properties = $Properties
-        }
-
-        switch ($PsCmdlet.ParameterSetName)
-        {
-            'UserPrincipalName'
-            {
-                # Check if UPN is valid
-                if (!(Test-IsEmail -EmailAddress $UserPrincipalName))
-                {
-                    Write-Warning -Message "$UserPrincipalName is not a valid UPN"
-
-                    continue
-                }
-                else
-                {
-                    # Append to command hash
-                    $paramGetUserDn.Add('Filter', "UserPrincipalName -eq '$UserPrincipalName'")
-                }
-            }
-            'DistinguishedName'
-            {
-                # Check if DN is in the correct format
-                if (!(Test-IsValidDN -ObjectDN $UserDN))
-                {
-                    Write-Warning -Message "$UserDN is not a valid object DN"
-
-                    continue
-                }
-                else
-                {
-                    # Append to command hash
-                    $paramGetUserDn.Add('Identity', $UserDN)
-                }
-            }
-            'SamAccountName'
-            {
-                # Append to command hash
-                $paramGetUserDn.Add('Identity', $SamAccountName)
-            }
-        }
-    }
-
-    process
-    {
-        try
-        {
-            # Check if we should use specific DC
-            if ($PSBoundParameters.ContainsKey('DomainController'))
-            {
-                # Append parameter
-                $paramGetUserDn.Add('Server', $DomainController)
-                $paramGetADReportChain.Add('Server', $DomainController)
-            }
-
-            # Get object DN
-            [string]$objectDn = (Get-ADUser @paramGetUserDn).'DistinguishedName'
-
-            # Define LDAP filter
-            [string]$ldapFilter = "(manager:1.2.840.113556.1.4.1941:=$objectDn)"
-
-            # Append paramter
-            $paramGetADReportChain.Add('LDAPFilter', $ldapFilter)
-
-            [array]$reportChain = Get-ADUser @paramGetADReportChain | Select-Object -Property $Properties
-        }
-        catch
-        {
-            Write-Warning -Message "Could not find identity $object in AD"
-        }
-    }
-
-    end
-    {
-        return $reportChain
-    }
+```powershell
+try {
+    $reports = @(Get-ReportChain -SamAccountName 'manager01' -ErrorAction Stop)
+    Write-Host "Found $($reports.Count) reports."
+}
+catch {
+    Write-Error "Reporting-chain query failed: $($_.Exception.Message)"
+    throw
 }
 ```
 
-Function accepts **SamAccountName**, **UserPrincipalName** or **DistinguishedName** of a user account and will return an array containing all direct and indirect reports of the user.
+The downloadable implementation escapes both UPN and DN values for their LDAP filter context and has no dependency on the older email/DN validation helpers. It outputs selected objects rather than buffering the full result set inside the function.
 
-```powershell
-# Get reports for user
-Get-ReportChain -UserPrincipalName 'Test@automation.lab'
+This remains a directory query: stale or missing manager attributes change the result, and query time depends on directory size, scope and DC load. The earlier article's timing was an observation from that environment, not a guarantee for this function.
 
-# Output
-SamAccountName    : report1
-UserPrincipalName : report1@automation.lab
-Mail              : report1@automation.lab
-Manager           : CN=report1,OU=Test,OU=Users,DC=automation,DC=lab
-DirectReports     : {}
+The revised lookup, escaping and error paths have been checked with synthetic directory responses; a live AD environment is still required to validate permissions, server selection and the resulting hierarchy before production use.
 
-SamAccountName    : report2
-UserPrincipalName : report2@automation.lab
-Mail              : report2@automation.lab
-Manager           : CN=report2,OU=Test,OU=Users,DC=automation,DC=lab
-DirectReports     : {}
-```
-
-As you can see the cmdlet will return information about the user reports together with a set of *default* properties. If you need to have more properties in the output the **-Properties** switch can be used which accepts an array containing properties to be returned exactly as the standard AD cmdlet specifying the *'\*'* string all available properties will be returned.
-
-**Note:** Cmdlet has a dependency on *two* external functions [Test-IsValidDn](https://singularvector.github.io/powershell/howto/identity%20management/PowerShell-Check-If-String-Is-A-DN/) and **Test-IsEmailAddress** both of which are available through my **[IT-ToolBox module](https://github.com/SingularVector/IT-ToolBox)**
+References: [Get-ADUser](https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-aduser) and [LDAP search filters](https://learn.microsoft.com/en-us/windows/win32/adsi/search-filter-syntax).

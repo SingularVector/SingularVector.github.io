@@ -1,6 +1,6 @@
 ---
 title: "PowerShell - Generate Unique UPN"
-excerpt: "In this short post I will share two new cmdlets I have developed to generate forest wide unique UPN handling the different edge cases."
+excerpt: "Generate UPN candidates with configurable name formats, LDAP filter escaping and explicit limits on directory scope and concurrent provisioning."
 categories:
   - PowerShell
   - Howto
@@ -11,15 +11,22 @@ tags:
   - HowTo
 
 toc: true
-header:
-  teaser: "/assets/images/PowerShell_Logo.png"
+last_modified_at: 2026-11-02
 ---
+
+## Scope and corrections
+
+These Windows ADSI examples **propose a candidate UPN** by checking directory data at query time. They do not reserve the value: two concurrent provisioning jobs can select the same candidate, and replication delay can affect the result. Handle conflicts when creating the account rather than treating a successful lookup as an atomic uniqueness guarantee.
+
+With no `-AdServer`, the lookup uses a Global Catalog. Supplying `-AdServer` uses the original `LDAP://` path and can restrict the query to that server's domain context; it must not be described as a guaranteed forest-wide search. Validate scope and access in the intended forest before deployment. A lookup failure propagates as an error and must not be converted into “UPN is free.”
+
+The examples below correct the first-name default, independent surname formatting, the `-AdServer` call and LDAP filter escaping. They retain the original name-composition rules; organisation-specific rules for punctuation, accents and allowed suffixes belong in the provisioning policy.
 
 ## Generating Unique User Principal Names (UPNs) in PowerShell
 
 When managing Active Directory (AD) environments, creating unique User Principal Names (UPNs) is a common, and challenging!, task.
 
-This blog post covers two PowerShell functions that help ensure UPN uniqueness: **Test-UPNExist** and **Get-UniqueUPN**. These functions can be particularly useful for automating user creation processes and can be integrated into your automation projects and solutions.
+This blog post covers two PowerShell functions that help find an unused UPN candidate: **Test-UPNExist** and **Get-UniqueUPN**. These functions can be particularly useful for automating user creation processes and can be integrated into your automation projects and solutions.
 
 **Note** Both cmdlets are still under active development so do expect some changes, as I progress with development I will update the post. Feel free to report any issue, idea or suggestion so that I can integrate it into the final cmdlet version.
 
@@ -61,24 +68,42 @@ function Test-UPNExist
     if ([string]::IsNullOrEmpty($AdServer) -eq $true)
     {
         $adForest = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
-        [string]$ldapPath = '{0}{1}' -f 'GC://', $($adForest.FindGlobalCatalog().Name)
+        $globalCatalog = $null
+        try
+        {
+            $globalCatalog = $adForest.FindGlobalCatalog()
+            [string]$ldapPath = 'GC://{0}' -f $globalCatalog.Name
+        }
+        finally
+        {
+            if ($null -ne $globalCatalog) { $globalCatalog.Dispose() }
+            $adForest.Dispose()
+        }
     }
     else
     {
         [string]$ldapPath = '{0}{1}' -f 'LDAP://', $AdServer
     }
     
-    # Instantiate required objects and run query
-    $adDomain = New-Object System.DirectoryServices.DirectoryEntry($ldapPath)
-    $adSearcher = New-Object System.DirectoryServices.DirectorySearcher($adDomain)
-    $adSearcher.SearchScope = 'Subtree'
-    $adSearcher.PageSize = 1000
-    $adSearcher.Filter = "(&(objectCategory=person)(userPrincipalName=$UPN))"
-    [void]($adSearcher.PropertiesToLoad.Add("userPrincipalName"))
-    
-    [array]$searchResult = $adSearcher.FindOne()
-    
-    return $null -ne $searchResult
+    # Escape an attribute value for the LDAP filter context.
+    $escapedUpn = $UPN.Replace('\', '\5c').Replace('*', '\2a').Replace('(', '\28').Replace(')', '\29').Replace([string][char]0, '\00')
+    $adDomain = $null
+    $adSearcher = $null
+    try
+    {
+        $adDomain = [System.DirectoryServices.DirectoryEntry]::new($ldapPath)
+        $adSearcher = [System.DirectoryServices.DirectorySearcher]::new($adDomain)
+        $adSearcher.SearchScope = 'Subtree'
+        $adSearcher.Filter = "(&(objectCategory=person)(objectClass=user)(userPrincipalName=$escapedUpn))"
+        [void]$adSearcher.PropertiesToLoad.Add('userPrincipalName')
+        $searchResult = $adSearcher.FindOne()
+        return $null -ne $searchResult
+    }
+    finally
+    {
+        if ($null -ne $adSearcher) { $adSearcher.Dispose() }
+        if ($null -ne $adDomain) { $adDomain.Dispose() }
+    }
 }
 ```
 
@@ -86,7 +111,7 @@ Here's a summary explanation of the parameters:
 
 - **Parameters**
   - *$UPN* - A string representing the UPN to check
-  - *$Server* -  A string representing the name of the  LDAP server to query. Parameter is optional and if omitted function will automatically select the closest global catalog server
+  - *$AdServer* -  A string representing the name of the  LDAP server to query. Parameter is optional and if omitted function will automatically select the closest global catalog server
   
 Here's an example usage:
 
@@ -106,7 +131,7 @@ else
 
 ### Function 2: Get-UniqueUPN
 
-This function generates a unique UPN based on given name components and ensures it doesn't already exist in the AD forest.
+This function generates a unique UPN based on given name components and checks the configured directory scope for an existing value.
 
 ```powershell
 function Get-UniqueUPN
@@ -180,7 +205,7 @@ function Get-UniqueUPN
         [string]$UPNSuffix,
         [ValidateSet('FullName', 'FirstLetter', IgnoreCase = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$FirstNameFormat = 'Full',
+        [string]$FirstNameFormat = 'FullName',
         [ValidateSet('FullName', 'FirstLetter', IgnoreCase = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$LastNameFormat = 'FullName',
@@ -232,6 +257,11 @@ function Get-UniqueUPN
         [string]$middleName = $MiddleName
     }
     
+    if ([string]::IsNullOrWhiteSpace($firstName) -or [string]::IsNullOrWhiteSpace($lastName))
+    {
+        throw 'The input must contain both a first name and a last name.'
+    }
+
     # Format first name
     $firstName = switch ($FirstNameFormat)
     {
@@ -246,7 +276,7 @@ function Get-UniqueUPN
     }
     
     # Format last name
-    $LastName = switch ($FirstNameFormat)
+    $LastName = switch ($LastNameFormat)
     {
         'FullName'
         {
@@ -265,11 +295,11 @@ function Get-UniqueUPN
     }
     
     # Setup required attributes
-    [string]$baseUPN = ('{0}{1}{2}{3}@{4}' -f $FirstName, $middleNamePart, $Separator, $LastName, $UPNSuffix).ToLower()
+    [string]$baseUPN = ('{0}{1}{2}{3}@{4}' -f $FirstName, $middleNamePart, $Separator, $LastName, $UPNSuffix).ToLowerInvariant()
     [string]$uniqueUPN = $baseUPN
     [int]$counter = 1
     
-    while (Test-UPNExist -UPN $uniqueUPN -Server $ADServer)
+    while (Test-UPNExist -UPN $uniqueUPN -AdServer $ADServer)
     {
         $uniqueUPN = '{0}{1}@{2}' -f ($baseUPN.Split('@')[0]), $counter, $UPNSuffix
         
@@ -288,9 +318,9 @@ Here's a summary explanation of the parameters:
   - *$LastName* - A string representing the *Last Name* of a given user
   - *MiddleName* - A string representing the *Middle Name* of a given user (of course optional)
   - *$UPNSuffix* - A string representing the domain suffix for the UPN
-  - *FirstNameFormat* - The format of the first name in the UPN (e.g. Full or First letter of name)
+  - *FirstNameFormat* - The format of the first name in the UPN (`FullName` or `FirstLetter`)
   - *IncludeMiddleName* - Switch parameter indicating to cmdlet if Middle Name should be used or not in the UPN generation
-  - *$Server* - A string representing the name of the  LDAP server to query. Parameter is optional and if omitted function will automatically select the closest global catalog server
+  - *$AdServer* - A string representing the name of the  LDAP server to query. Parameter is optional and if omitted function will automatically select the closest global catalog server
   - *$Separator* - The separator to use between the name parts. If not specified a '.' (dot) is used
 
 Below you can find couple examples of functions at work
@@ -312,7 +342,7 @@ Write-Host "Generated UPN: $uniqueUPN"
 
 By using **Test-UPNExist** and **Get-UniqueUPN**, you can automate the process of generating unique UPNs for users in your Active Directory environment.
 
-These functions ensure that each UPN is unique and adheres to the naming conventions you specify.
+These functions apply the selected name format and check for an existing value in the configured search scope. They are a starting point for provisioning, with creation-time conflict handling still required.
 
 This approach minimizes the risk of conflicts and simplifies user management.
 

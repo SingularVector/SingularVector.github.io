@@ -1,6 +1,6 @@
 ---
 title: "PowerShell parse EML files"
-excerpt: "EML are a proprietary, and almost, obsolete used to represent an email message in encoded format which is not easy to parse for automation purposes"
+excerpt: "Parse EML subjects correctly: folded headers, MIME encoding, a portable Python parser and the original Windows COM workflow."
 categories:
 
   - PowerShell
@@ -8,19 +8,20 @@ categories:
 tags:
   - PowerShell
   - Functions
+last_modified_at: 2026-11-02
 ---
 
-Some time ago I've been faced with a challenge, well a file format I should say, I was not expecting parsing an *EML* file format which, in total honesty, I thought extinct.
+In the original workflow, I needed to parse an email message saved as an `.eml` file. The surprise was how much a simple subject-line extraction depended on understanding email headers.
 
 To give you some background I implemented a solution sending notifications to a dedicated *Microsoft Teams* channel containing some information that needed to be parsed by a script and eventually take some actions.
 
 I initially thought this would have been rather easy. I was wrong.
 
-## EML an obscure file format
+## EML is an email message, not a proprietary format
 
-EML file format is defined in [rfc0822](https://www.ietf.org/rfc/rfc0822.txt) with an extension in [rfc1521](https://www.ietf.org/rfc/rfc1521.txt) defining MIME entities but as far as I know there is no official definition of the file format.
+An `.eml` file commonly stores an Internet email message, including headers and a body that may use MIME. The relevant standards include [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322) and [MIME](https://www.rfc-editor.org/rfc/rfc2045). The filename extension is a convention; the format is not an obsolete Microsoft-only encoding.
 
-Anyhow EML is the format *MS Teams* is using to store email messages that are sent to a team's address and while retrieving the EML file itself is rather easy extracting any meaningful data from it proved another story.
+In the Teams workflow described here, I could retrieve the saved message, but extracting its subject correctly required handling folded headers and encoded text.
 
 ## EML as a text file
 
@@ -39,15 +40,33 @@ $emlFile = $emlFile -match $subjectRegex
 
 The above was working while testing the solution in an interactive session but when I started feeding real production data to the script the parsed data was missing key data I knew was in the original eml file (if you're working the subject line contained a *[DO NOT MODIFY]* tag followed by two listing email addresses, so a rather long string).
 
-Issue was being caused by character limit in the subject line which was being broken down to a new line making my filter useless.
+The subject header was folded across continuation lines. A regex matching only the physical line beginning with `Subject:` misses those continuations; non-ASCII text may also use encoded-word syntax. This is why a message parser is preferable to a line filter.
 
 ## Python to the rescue! Or not?
 
-Not being able to find an easy way out of my *issue* via PowerShell I initially thought using Python to parse the eml file as there is nice [parser](https://pypi.org/project/eml-parser/) available which does exactly what I was looking for.
+Not being able to find an easy way out of my *issue* via PowerShell I initially thought using Python to parse the eml file as there are libraries for parsing messages. Python also has a standard-library `email` parser; installing a third-party package is not required just to read a subject.
 
 While working this solution was introducing some other challenges and making the whole solution more complicated then I remembered a colleague dealing with this format in C# back at the time so I started scouting Stack Overflow posts [and found this](https://stackoverflow.com/questions/936422/recommendations-on-parsing-eml-files-in-c-sharp/2838544#2838544) which was describing exactly my problem!
 
-### Convert-EmlFile function
+### A portable parser option
+
+If Python is available, its standard library handles folded and encoded headers:
+
+```python
+from email import policy
+from email.parser import BytesParser
+
+with open("message.eml", "rb") as source:
+    message = BytesParser(policy=policy.default).parse(source)
+subject = str(message["Subject"]) if message["Subject"] is not None else None
+```
+
+This returns `None` when the subject is absent. The subject is still untrusted message content: apply the application's own validation before using it to trigger automation. See [email.parser](https://docs.python.org/3/library/email.parser.html).
+
+### Convert-EmlFile: the original Windows implementation
+
+The following is the historical COM-based implementation from my workflow. It depends on Windows and the ADODB/CDO components being registered; it is not a cross-platform PowerShell parser. COM lifetime and error cleanup also need to be handled in a production implementation.
+
 
 **Convert-EmlFile** is a really simple function which does exactly what is described in the above post, it uses the *ADODB class* to return an object you can easily interact with within PowerShell.
 
@@ -103,7 +122,8 @@ function Convert-EmlFile
 
 The function accepts only a single parameter *-EmlFileName* which is a string representing the path, either local or UNC, to the eml file itself, and will return a **formatted** object you can work with.
 
-**Note:** You will need to supply a valid path, either local or UNC, or function will fail this is not related to PowerShell code but to the ADODB.Stream class requiring a path rather than just the file name.{: .notice--success}
+**Note:** Supply an existing, fully qualified local or UNC path and run with an identity that can read it. A missing file or COM component should be handled as a parsing failure, not as an empty message.
+{: .notice--primary}
 
 Here's a sample run and output where I've removed sensitive information:
 

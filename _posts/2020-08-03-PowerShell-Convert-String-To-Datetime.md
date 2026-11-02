@@ -9,7 +9,7 @@ tags:
   - Performance Tips
 
 header:
-    teaser: "/assets/images/BackToTheFuture.png"
+    teaser: "/assets/images/string-to-datetime/BackToTheFuture.png"
 ---
 
 ## Fun with time in PowerShell

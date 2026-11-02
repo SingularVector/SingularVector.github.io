@@ -10,8 +10,6 @@ tags:
   - Encryption
   - Automation
 toc: true
-header:
-  teaser: "/assets/images/PowerShell_Logo.png"
 ---
 
 ## Same function names, different behaviour

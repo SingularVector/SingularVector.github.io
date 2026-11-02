@@ -10,184 +10,64 @@ tags:
   - PowerShell Assemblies
   - PowerShell Tips
   - PowerShell Core
+last_modified_at: 2026-11-02
 ---
 
-One common technique is loading .Net *assemblies* in PowerShell script or module to leverage functionalities otherwise not available natively in PowerShell.
+Loading a .NET assembly makes its public types available to a PowerShell session. I used this in my [PowerScp module](https://github.com/SingularVector/PowerScp), which wraps WinSCP's .NET API.
 
-A good example of this is in my [**PowerScp** module](https://github.com/SingularVector/PowerScp) which is distributed together with the **WinSCPnet.dll** assembly which makes required classes and methods available from within the PowerShell session.
+The first question is compatibility: Windows PowerShell 5.1 uses .NET Framework, while PowerShell 7 uses modern .NET. Choose the library build intended for your runtime and check its platform and dependency requirements. Loading a DLL successfully does not prove its network operations will work on that host.
 
-## What is a .Net Assembly and why use them
+## Load a DLL from disk
 
-Before proceeding let's formally define of what an *assembly* is and why we want to use them in our scripts, straight from MSDN an assembly is
-
-> ...(a) collection of types and resources that are built to work together and form a logical unit of functionality. Assemblies take the form of executable (.exe) or dynamic link library (.dll) files, and are the building blocks of .NET applications. They provide the common language runtime with the information it needs to be aware of type implementations...
-
-If you want to read more about this the full article quoted above is available [here](https://docs.microsoft.com/en-us/dotnet/standard/assembly/).
-
-There are multiple methods we can use to add assemblies to PowerShell which we're going to explore in the post.
-
-## Method 1 - Add assembly with Add-Type cmdlet
-
-Building on the *WinSCPnet.dll* example let's how we can import in our PowerShell code make use of the new types and methods made available by it.
-
-Aim of my **PowerScp** module is creating a wrapper around to the fantastic *WinSCP* GUI package to be used within PowerShell, to make this possible I leveraged the *WinSCP* assembly made available via compiled DLL file so to make available functions and objects that are not native to the .Net Framework and PowerShell.
-
-Exploring this by example in the below snippet, taken from the *New-ScpSession* cmdlet, I'm creating a new object of *WinSCP.Session* type but without importing the required assemblies PowerShell will throw the following exception:
+For a managed assembly shipped with a script or module, `Add-Type` is usually the most direct approach:
 
 ```powershell
-# This will fail
-[WinSCP.Session]$scpSessionObject =  New-Object -TypeName  'WinSCP.Session'
-
-New-Object : Cannot find type [WinSCP.Session]: verify that the assembly containing this type is loaded.
-At line:1 char:1
-+ New-Object -TypeName  'WinSCP.Session'
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : InvalidType: (:) [New-Object], PSArgumentException
-    + FullyQualifiedErrorId : TypeNotFound,Microsoft.PowerShell.Commands.NewObjectCommand
+$assemblyPath = 'C:\Assemblies\WinSCPnet.dll'
+Add-Type -Path $assemblyPath -ErrorAction Stop
+$session = [WinSCP.Session]::new()
+try {
+    # Configure and use the session here.
+}
+finally {
+    $session.Dispose()
+}
 ```
 
-Error message is rather clear but the important bit is
+Use a path resolved relative to your module's installation directory in a distributable module, rather than assuming every host has `C:\Assemblies`. For WinSCP specifically, deploy the matching `WinSCP.exe` as well as the assembly and choose the runtime-appropriate DLL; see the [vendor's installation instructions](https://winscp.net/eng/docs/library_install) and [PowerShell examples](https://winscp.net/eng/docs/library_powershell). WinSCP's automation dependencies target Windows, even when called from PowerShell 7.
 
-> Cannot find type [WinSCP.Session]: verify that the assembly containing this type is loaded.
+## Reflection loading
 
-As expected PowerShell is complaining as it cannot find a definition for the *WinsSCP.Session* object this is where adding assemblies to out scripts come into play.
+The .NET reflection API is another available loading mechanism:
 
 ```powershell
-# Define Assembly path
-[string]$assemblyPath = 'C:\Assemblies\WinSCPnet.dll'
-
-# Add assembly DLL
-Add-Type -Path $assemblyPath
+$assemblyPath = 'C:\Assemblies\WinSCPnet.dll'
+$assembly = [System.Reflection.Assembly]::LoadFrom($assemblyPath)
+$assembly.FullName
 ```
 
-The above will return no output and import into the PowerShell session all classes and methods associated with the DLL.
+This is not a method that `Add-Type` universally replaced. The APIs have different loading and dependency-resolution details. Prefer the library's documented loading method rather than switching between them to suppress an error.
+
+## Byte arrays and Base64
+
+It is also possible to load a managed assembly from bytes. Base64 is a textual representation of those bytes, useful for illustrating the round trip:
 
 ```powershell
-# Define Assembly path
-[string]$assemblyPath = 'C:\Assemblies\WinSCPnet.dll'
+$assemblyPath = 'C:\Assemblies\WinSCPnet.dll'
+[byte[]]$assemblyBytes = [System.IO.File]::ReadAllBytes($assemblyPath)
+[string]$assemblyString = [Convert]::ToBase64String($assemblyBytes)
 
-# Add assembly DLL
-Add-Type -Path $assemblyPath
-
-# Create new object
-[WinSCP.Session]$scpSessionObject =  New-Object -TypeName  'WinSCP.Session'
-
-# Get object type and members
-$scpSessionObject | Get-Member
-
-TypeName: WinSCP.Session # Note new not native type
-
-Name                          MemberType Definition
-----                          ---------- ----------
-Failed                        Event      WinSCP.FailedEventHandler Failed(System.Object, WinSCP.FailedEventArgs)
-FileTransferProgress          Event      WinSCP.FileTransferProgressEventHandler FileTransferProgress(System.Object,...
-FileTransferred               Event      WinSCP.FileTransferredEventHandler FileTransferred(System.Object, WinSCP.Tr...
-OutputDataReceived            Event      WinSCP.OutputDataReceivedEventHandler OutputDataReceived(System.Object, Win...
-QueryReceived                 Event      WinSCP.QueryReceivedEventHandler QueryReceived(System.Object, WinSCP.QueryR...
-Abort                         Method     void Abort()
-AddRawConfiguration           Method     void AddRawConfiguration(string setting, string value)
-CalculateFileChecksum         Method     byte[] CalculateFileChecksum(string algorithm, string path)
-Close                         Method     void Close()
-TranslateRemotePathToLocal    Method     string TranslateRemotePathToLocal(string remotePath, string remoteRoot, str...
-AdditionalExecutableArguments Property   string AdditionalExecutableArguments {get;set;}
-DebugLogLevel                 Property   int DebugLogLevel {get;set;}
-DebugLogPath                  Property   string DebugLogPath {get;set;}
-DefaultConfiguration          Property   bool DefaultConfiguration {get;set;}
-DisableVersionCheck           Property   bool DisableVersionCheck {get;set;}
-ExecutablePath                Property   string ExecutablePath {get;set;}
-ExecutableProcessPassword     Property   securestring ExecutableProcessPassword {get;set;}
-ExecutableProcessUserName     Property   string ExecutableProcessUserName {get;set;}
+[byte[]]$decodedBytes = [Convert]::FromBase64String($assemblyString)
+$assembly = [System.Reflection.Assembly]::Load($decodedBytes)
 ```
 
-**Note:** Above output is snipped for brevity as the assembly supports a lot of methods and properties
+The array type is **`[byte[]]`**, not `[byte]`; the latter holds one byte and was an error in the original examples. The Base64 text is encoding, not encryption, and makes the payload larger.
 
-## Method 2 - Add assembly with Reflection Assembly
+Loading from bytes avoids asking the loader to load that assembly from its original file path. It does not package dependent DLLs, native libraries, configuration files or external executables. For example, embedding `WinSCPnet.dll` does not remove WinSCP's executable dependency. Byte loading also changes assembly-location and dependency-resolution behaviour, so test more than whether a type can be constructed.
 
-This is a legacy method that was replaced by the *Add-Type* cmdlet in Version 2.0 of PowerShell but still works in current versions syntax is slightly more *complex* but will get the job done
+For maintainable distribution, shipping a versioned library alongside the module is normally easier to inspect and update than pasting a large encoded DLL into the source. Keep licence and provenance information with any redistributed dependencies.
 
-```powershell
-# Define Assembly path
-[string]$assemblyPath = 'C:\Assemblies\WinSCPnet.dll'
+## Updating a loaded library
 
-# Load assembly and suppress output
-[void]([System.Reflection.Assembly]::LoadFrom($assemblyPath))
-```
+Do not assume that deleting, replacing or reloading a DLL replaces types already loaded into a running process. File-lock behaviour depends on the runtime and loading method. When testing a library update, a fresh PowerShell process gives a clear starting point.
 
-In the previous example casting void will suppress output which is, by default, printed by the command which would look similar to the this
-
-```powershell
-[System.Reflection.Assembly]::LoadFrom($assemblyPath)
-
-GAC    Version        Location
----    -------        --------
-False  v4.0.30319     C:\Assemblies\WinSCPnet.dll
-```
-
-## Method 3 - Add assembly via a string object
-
-The methods I have illustrated to this point have similar functionality and will work equally well but both have a drawback *they will put a lock* on the DLL file they're using, this means if you need to cleanup the environment, rename, delete or move the file you will not be able to do so as PowerShell will be blocking the file itself. Generally this is not an issue but when you're developing a solution and need to cleanup the environment rather frequently I can assure it is.
-
-Solution to the above problem is using a **string** in place of the binary DLL file itself which will give us two distinct advantages **fist** no lock will be placed on the assembly file, **second** there is no need for the DLL file to be present on the system where the script or module is running making distribution and portability even easier. Let's explore how this works.
-
-### Step 1 - Get Base64 encoded string
-
-The first step in *converting* the binary DLL to string is getting Base64 encoded string of it which is achieved with the following command:
-
-```powershell
-# Define Assembly path
-[string]$assemblyPath = 'C:\Assemblies\WinSCPnet.dll'
-
-# Read all bytes from DLL
-[byte]$assemblyBytes = [System.IO.File]::ReadAllBytes($assemblyPath)
-```
-
-This will read and convert all bytes from the dll specified in the *$assemblyPath* variable if we pipe variable to the screen output will be similar to this
-
-```powershell
-$assemblyBytes
-77
-90
-144
-0
-3
-0
-0
-<snip>
-```
-
-Once all the DLL bytes are available we can convert that to a Base64 string using the [Convert.ToBase64String Method](https://docs.microsoft.com/en-us/dotnet/api/system.convert.tobase64string?view=netframework-4.8)
-
-```powershell
-[string]$assekblyString = [System.Convert]::ToBase64String($assemblyBytes)
-```
-
-Again piping the variable to the console will produce an output similar to the following
-
-**Spoiler Alert:** Resulting string will be really long.
-{: .notice--warning}
-
-```powershell
-$assekblyString
-TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAA4fug4AtAnNIbgBTM0hVGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4gaW4gRE9TIG1vZGUuDQ0KJAAAAAAAAABQRQAATAEDAPAmF50AAAAAAAAAAOAAIiALATAAAPoBAAAGAAAAAAAAVhgCAAAgAAAAIAIAAAAAEAAgAAAAAgAABAAAAAAAAAAEAAAAAAAAAABgAgAAAgAAsYsCAAMAQIUAABAAABAAAAAAEAAAEAAAAAAAABAAAAAAAAAAAAAAAAIYAgBPAAAAACACANADAAAAAAAAAAAAAAAAAAAAAAAAAEACAAwAAAAwFwIAVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAACAAAAAAAAAAAAAAACCAAAEgAAAAAAAAAAAAAAC50ZXh0AAAAXPgBAAAgAAAA
-<snip>
-```
-
-### Step 2 - Embed assembly string in script
-
-Once we have converted the string to distribute required assemblies all we need to do is making the string available in the code but as that will be Base64 encoded we first need to convert it back with the [Convert.FromBase64String Method](https://docs.microsoft.com/en-us/dotnet/api/system.convert.frombase64string?view=netframework-4.8)
-
-```powershell
-# Define asembly string
-[string]$assekblyString = 'TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAA...'
-
-# Convert string to bytes
-[byte]$assemblyBytes = [System.Convert]::FromBase64String($assekblyString)
-
-# Import assembly
-[System.Reflection.Assembly]::Load($assemblyBytes)
-```
-
-Note how assembly can only be imported via the **System Reflection Assembly** method and not the *Add-Type* one but apart from this functionality in the script will not be impacted and dependency on the binary DLL being available on the system will be removed.
-
-**Pro Tip:** Keep in mind this method while having advantages comes at the cost of making the script file *larger* due the overhead of having the full DLL string embedded in the code and will suffer from a slight performance hit due to all the conversion between types. I don't have enough data to confirm the penalty hit but will carry on some tests.
-{: .notice--danger}
+References: [Add-Type](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/add-type) and [Assembly.Load](https://learn.microsoft.com/en-us/dotnet/api/system.reflection.assembly.load).

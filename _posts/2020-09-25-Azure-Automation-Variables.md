@@ -13,30 +13,25 @@ tags:
 
 toc: true
 header:
-    teaser: "/assets/images/Azure_Automation_Logo.png"
+    teaser: "/assets/images/shared/Azure_Automation_Logo.png"
+last_modified_at: 2026-11-02
 ---
 
 ## Azure Automation Variables as Shared Resources
 
-Shared Resources in Azure Automation allow us to reuse credentials, modules, schedules, connections, certificates and **variables** which will be the main focus of the post.
+Azure Automation shared resources include credentials, modules, schedules, connections, certificates and **variables**. This post focuses on variables.
 
-To better understand the importance of shared resources and *variables in Azure Automation* let's go through a practical example. I have a runbook pulling data from a web service which requires to reference an API secret as part of the process to obtain an authentication token.
+The original example came from a runbook pulling data from a web service. It needed an API secret to obtain an authentication token, and that value had to be available without being embedded in the runbook source.
 
-When running the script through a scheduled task or through on-prem System Center Orchestrator you would either need to store the key in plain text in the script itself or use methods described in my post *[Store Credentials in PowerShell Script](https://singularvector.github.io/powershell/howto/Store-Credentials-in-PowerShell-Script/)*
+For unattended jobs, first consider an identity-based flow that avoids an API secret. If the service requires a secret, keep it outside source code and retrieve it only in the execution context that needs it. See [credential storage options]({% post_url 2019-02-26-Store-Credentials-in-PowerShell-Script %}).
 
-```powershell
-# Plain text
-[strint]$apiSecrect = '14??!==AbZyC78mk'
+An encrypted Automation variable can centralise a value used by runbooks. It protects the stored asset, but a runbook authorised to read it receives the usable value at runtime. Access to editing or running runbooks therefore matters as much as the variable's encryption flag.
 
-# Use New-StringDecryption cmdlet from IT-ToolBox module
-New-StringDecryption -EncryptedString $apiSecret
-```
-
-While both approaches will work that's not without drawbacks implying security considerations. Another consideration is the fact secret key at some point could change and, if a large number of scripts/runbooks, is using it we would need to update code all of solutions using it. This is where *Azure Automation variables* come into play.
+The portal screenshots below are from the original 2020 walkthrough; consult the [current Azure Automation variables documentation](https://learn.microsoft.com/en-us/azure/automation/shared-resources/variables) for runtime and interface differences.
 
 ## Azure Automation Variables Types
 
-Azure Automation supports two types of variables *Encrypted* and *Unencrypted* with the following types being supported:
+Variables can be stored as *encrypted* or *unencrypted* assets. The portal offers these value types:
 
 - Integers
 - Strings
@@ -44,17 +39,17 @@ Azure Automation supports two types of variables *Encrypted* and *Unencrypted* w
 - Boolean
 - Null
 
-Full documentation it is available [here](https://docs.microsoft.com/en-us/azure/automation/shared-resources/variables).
+The current documentation is available [here](https://docs.microsoft.com/en-us/azure/automation/shared-resources/variables).
 
 ### Unencrypted variables
 
-As the name implies an *unencrypted* variables are stored in Azure with their values being *visible* and to both runbooks/scripts and administrators.
+An *unencrypted* variable has a value visible to callers with the relevant management permissions, as well as to runbooks.
 
 An unencrypted variable can be created in the Azure portal going to **[Automation Account] / [Shared Resources] / [Variables]** and selecting **Add Variable** being sure to select *No* under the **Encrypted** section.
 
 <figure>
-  <a href="https://singularvector.github.io//assets/images/Azure_Automation_Unencrypted_Variable.png">
-  <img src="/assets/images/Azure_Automation_Unencrypted_Variable.png"></a>
+  <a href="{{ '/assets/images/azure-automation-variables/Azure_Automation_Unencrypted_Variable.png' | relative_url }}">
+  <img src="/assets/images/azure-automation-variables/Azure_Automation_Unencrypted_Variable.png" alt="Azure Automation Unencrypted Variable" loading="lazy" decoding="async"></a>
 </figure>
 
 **Note:** Typo in the above variable value is intended.
@@ -84,18 +79,18 @@ LastModifiedTime      : 26.09.2020 17:53:23 +02:00
 Description           :
 ```
 
-Once variable has been created it will be visible in the console:
+Once created, the variable appears in the portal:
 
 <figure>
-  <a href="https://singularvector.github.io//assets/images/Azure-Automatin-Unencrypted-Variables-Console.png">
-  <img src="/assets/images/Azure-Automatin-Unencrypted-Variables-Console.png"></a>
+  <a href="{{ '/assets/images/azure-automation-variables/Azure-Automatin-Unencrypted-Variables-Console.png' | relative_url }}">
+  <img src="/assets/images/azure-automation-variables/Azure-Automatin-Unencrypted-Variables-Console.png" alt="Azure Automatin Unencrypted Variables Console" loading="lazy" decoding="async"></a>
 </figure>
 
-As you can see values of the variable is visible both in the PowerShell output and the *Value* column of the variables blade in Azure Portal. We will discuss this in more detail in a minute.
+The value appears both in the PowerShell output and in the portal’s *Value* column.
 
 ### Encrypted variables
 
-Creation *encrypted* variables is identical in terms of steps in the console and via PowerShell simply requires us to specify the *-Encrypted $True* parameter.
+To create an *encrypted* variable, select encryption in the portal or specify `-Encrypted $true` in PowerShell.
 
 ```powershell
 $paramNewAzAutomationVariable = @{
@@ -119,27 +114,22 @@ LastModifiedTime      : 26.09.2020 18:51:53 +02:00
 Description           :
 ```
 
-As you can see when creating an encrypted variable Value is *omitted* in the output, in the *variables* blade it will be displayed like this
+For an encrypted asset, the creation output omits the value. The original portal view looked like this:
 
 <figure>
-  <a href="https://singularvector.github.io//assets/images/Azure_Automation_Encrypted_Variable.png">
-  <img src="/assets/images/Azure_Automation_Encrypted_Variable.png"></a>
+  <a href="{{ '/assets/images/azure-automation-variables/Azure_Automation_Encrypted_Variable.png' | relative_url }}">
+  <img src="/assets/images/azure-automation-variables/Azure_Automation_Encrypted_Variable.png" alt="Azure Automation Encrypted Variable" loading="lazy" decoding="async"></a>
 </figure>
 
-<figure>
-  <a href="https://singularvector.github.io//assets/images/Add_Application.png">
-  <img src="/assets/images/Add_Application.png"></a>
-</figure>
-
-This is the expected behaviour as encrypted variables are *secured* with a unique key generated for each **automation account**. It goes alone encrypted variables are more secure in nature but it has to be kept in mind that, once created, azure automation variables have been created **values cannot be seen only updated**.
+Azure Automation encrypts these assets at rest using an account-specific key. Management views hide the stored value, while authorised runbooks can retrieve it at runtime; encryption does not stop runbook code from exposing the value.
 
 ### Update and Retrieve Azure Automation variable values
 
 Now that we know how to create azure automation variables let’s see how to work with them and update their values. Recall I had a typo in the unencrypted variable, trailing '[' character, let's fix that from the console
 
 <figure>
-  <a href="https://singularvector.github.io//assets/images/Azure_Automation_Update_Variable_Value.png">
-  <img src="/assets/images/Azure_Automation_Update_Variable_Value.png"></a>
+  <a href="{{ '/assets/images/azure-automation-variables/Azure_Automation_Update_Variable_Value.png' | relative_url }}">
+  <img src="/assets/images/azure-automation-variables/Azure_Automation_Update_Variable_Value.png" alt="Azure Automation Update Variable Value" loading="lazy" decoding="async"></a>
 </figure>
 
 Or from PowerShell
@@ -165,14 +155,14 @@ LastModifiedTime      : 26.09.2020 19:08:28 +02:00
 Description           : Fixed typo in value
 ```
 
-When working with an encrypted variable things will be slightly different. **Encrypted variables can only have their value updated but never shown** to do so simply click the *Edit value* button and then save it
+For an encrypted variable, the portal hides the existing value. Select *Edit value* to replace it, then save the change. Authorised runbooks can still retrieve the resulting value at runtime.
 
 <figure>
-  <a href="https://singularvector.github.io//assets/images/Azure_Automation_Update_Encrypted_Variable.png">
-  <img src="/assets/images/Azure_Automation_Update_Encrypted_Variable.png"></a>
+  <a href="{{ '/assets/images/azure-automation-variables/Azure_Automation_Update_Encrypted_Variable.png' | relative_url }}">
+  <img src="/assets/images/azure-automation-variables/Azure_Automation_Update_Encrypted_Variable.png" alt="Azure Automation Update Encrypted Variable" loading="lazy" decoding="async"></a>
 </figure>
 
-From PowerShell command will not be much different but, again, we will not get back the value from the cmdlet
+The equivalent PowerShell update also omits the value from its response:
 
 ```powershell
 $paramSetAzAutomationVariable = @{
@@ -216,19 +206,17 @@ Description           : Fixed typo in value
 **Note:** Omitting the *-Name* parameter will return all configured variables
 {: .notice--primary}
 
-As I mentioned it is not possible to retrieve values for encrypted variables as they're available within the runbook at runtime via the **Get-AutomationVariable** cmdlet. Using the *Test Encrypted Variable* as example I've created a small script that will show this behaviour
+Inside an Automation runbook, use **Get-AutomationVariable** to retrieve an encrypted asset. This is a runtime command, not a local replacement for the Az management cmdlets. Check that it is available in the runtime or Hybrid Worker environment you target.
 
 ```powershell
 $encryptedVariableValue = Get-AutomationVariable -Name 'Test Encrypted Variable'
 
-Write-output "The encrypted variable value is: $encryptedVariableValue"
+if ([string]::IsNullOrEmpty([string]$encryptedVariableValue)) {
+    throw 'The required encrypted variable has no value.'
+}
+# Pass the value directly to the API client; do not print it.
 ```
 
-And here the result from Azure Automation test pane:
+Do not write secret values to the output stream, verbose logs or the Automation test pane. The original demonstration did that with a sample value; production runbooks should not copy that pattern.
 
-<figure>
-  <a href="https://singularvector.github.io//assets/images/Azure_Automation_Encrypted_Variable_Runbook.png">
-  <img src="/assets/images/Azure_Automation_Encrypted_Variable_Runbook.png"></a>
-</figure>
-
-As simple as that, the same snippet can be used in production script to safely store *secrets* in our scripts.
+A variable's encryption status cannot be changed in place after creation; changing it requires re-creating the asset. Coordinate that change with dependent runbooks. Plan secret rotation separately from code deployment, and restrict access to the Automation account and runbook output.

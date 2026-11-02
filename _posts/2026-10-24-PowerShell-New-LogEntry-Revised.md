@@ -10,8 +10,6 @@ tags:
   - Automation
   - IT-ToolBox
 toc: true
-header:
-  teaser: "/assets/images/PowerShell_Logo.png"
 ---
 
 ## Revisiting New-LogEntry

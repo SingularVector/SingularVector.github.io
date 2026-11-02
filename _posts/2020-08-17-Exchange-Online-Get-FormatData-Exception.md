@@ -14,7 +14,7 @@ tags:
 last_modified_at: 2026-10-23
 toc: false
 header:
-    teaser: "/assets/images/ExchangeLogo.png"
+    teaser: "/assets/images/shared/ExchangeLogo.png"
 ---
 
 ## Historical remote PowerShell issue

@@ -12,7 +12,7 @@ tags:
 
 toc: false
 header:
-    teaser: "/assets/images/PowerShell_Logo.png"
+
 last_modified_at: 2026-11-02
 ---
 

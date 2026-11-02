@@ -12,19 +12,16 @@ tags:
   - Exchange
 
 toc: true
-header:
-  teaser: "/assets/images/PowerShell_Logo.png"
+last_modified_at: 2026-11-02
 ---
 
 ## Exchange Online Certificate Based authentication
 
-Microsoft is, _finally_, disabling **basic authentication** (read username and password) in Exchange Online in favor of **Certificate Based authentication**.
+This is a **January 2022 troubleshooting note**, observed with ExchangeOnlineManagement 2.0.4 and 2.0.5 while migrating mailbox automation to app-only certificate authentication. Modern authentication is not synonymous with certificate authentication: interactive administrators and unattended applications use different supported flows.
 
-Once this change is fully implemented, around mid February at least for some tenants, connecting via username and passwords to Exchange Online will not be possible anymore.
+For current connections, follow Microsoft's [Exchange Online PowerShell connection guide](https://learn.microsoft.com/en-us/powershell/exchange/connect-to-exchange-online-powershell) and [app-only authentication procedure](https://learn.microsoft.com/en-us/powershell/exchange/app-only-auth-powershell-v2). This session-order workaround has not been revalidated against current modules and is not a general solution to token expiry errors.
 
-You can read my article on how to implement _Certificate Based authentication_ for Exchange Online [here](https://singularvector.github.io/powershell/office365/exchange/Exchange-Online-Certificate-Based-Authentication/).
-
-As a result of this change I started updating one of our automations, responsible for the whole life-cycle of our mailboxes, to ditch old credential objects in favor of the more secure Certificate Authentication.
+At the time, I was updating one of our automations, responsible for the whole life-cycle of our mailboxes, to ditch old credential objects in favor of the more secure Certificate Authentication.
 
 This is when I encountered the _cannot bind argument to parameter 'token expiry time' because it is null._ error message.
 
@@ -46,12 +43,11 @@ Cannot bind argument to parameter 'token expiry time' because it is null.
 
 It took me a bit to figure this out as no exception was thrown during the connection *phase* either nor there was any other obvious pointer.
 
-When I was about to give up and open a ticket with Microsoft, which is usually as helpful as freezer in the North Pole, I discovered that establishing a connection to Exchange Online followed by a connection to the on-prem server was yielding the desired result. In my workflow I had this the other way around, first local Exchange and then Online service, which was causing the issue.
+When I was about to give up and open a ticket with Microsoft, I discovered that establishing a connection to Exchange Online followed by a connection to the on-prem server was yielding the desired result. In my workflow I had this the other way around, first local Exchange and then Online service, which was causing the issue.
 
 **Note:** I have experienced/tested this with version 2.0.4 and 2.0.5 of Exchange Online PowerShell module but other versions could be affected as well.
 {: .notice--warning}
 
-I did not dig deep into the root cause of the issue but plan to do this tomorrow and already sent my feedback to exocmdletpreview {at} service {dot} microsoft {dot} com but I doubt I will hear anything from that channel. 
-I will anyhow open a ticket with support to at least have an official statement/clarification on this.
+I did not establish a root cause in that investigation. The observation was that reversing connection order resolved that workflow's error; it does not establish why it happened.
 
-As soon as I have any news I will update the post until then I hope you can find the information useful.
+If you encounter it now, reproduce with supported module versions, record `$PSVersionTable` and the loaded Exchange module version, and test the on-premises and cloud commands independently. Inspect which command `Get-Command Get-RemoteMailbox` resolves to when sessions coexist. Separate processes can help distinguish a session/module interaction from an authentication failure; use your environment's supported connection procedures for each side.

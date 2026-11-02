@@ -9,12 +9,12 @@ tags:
   - Useful functions
 
 header:
-    teaser: "/assets/images/WindowsRegistry.png"
+    teaser: "/assets/images/export-registry-key/WindowsRegistry.png"
 ---
 
 Window registry has been for many years the joy and pain of every Windows Systems Administrator and if memory does not fail me it was even part of some of the old NT4 exams (the sweet sting of nostalgia!).
 
-![MCSE Windows NT](/assets/images/WindowsNTBook.jpg)
+![MCSE Windows NT](/assets/images/export-registry-key/WindowsNTBook.jpg)
 
 Anyhow as I said at some point or another we all had to deal with the import/export/modification of a registry key on a Windows machine hence this post.
 

@@ -12,59 +12,41 @@ tags:
   - Exchange
 
 toc: true
-header:
-  teaser: "/assets/images/PowerShell_Logo.png"
+last_modified_at: 2026-11-02
 ---
 
-## Exchange Online Certificate Based authentication
+## The original failure
 
-As I have written in my [previous post about TokenExpiry error message Microsoft is retiring ability to connect to Exchange Online via basic authentication](https://singularvector.github.io/powershell/exchange/office%20365/Cannot-bind-argument-to-parameter-Token-Expiry/).
+While updating mailbox automation in 2022, I deployed a new certificate to a test environment. Connecting to Exchange Online failed with:
 
-You can read my article on how to implement _Certificate Based authentication_ for Exchange Online [here](https://singularvector.github.io/powershell/office365/exchange/Exchange-Online-Certificate-Based-Authentication/).
+```text
+Could not use the certificate for signing. See inner exception for details.
+Invalid provider type specified.
+```
 
-## Could not use the certificate for signing error message
+The same certificate worked in my PowerShell 7 test. That was a useful diagnostic observation, but it does not mean changing PowerShell versions fixes every certificate-provider problem.
 
-Today while I was updating code for one of our automations I created a request for a new certificate to use for authentication purposes. 
+## CNG and RSA describe different things
 
-Once I deployed code to our test environment automation was failing the connection to Exchange Online with the following error
+The original article described this as converting “CNG to RSA.” That was inaccurate: **RSA is a key algorithm; CNG and CSP refer to Windows cryptographic provider models**. An RSA key can be associated with a CNG provider.
 
-```powershell
-[System.Management.Automation.RuntimeException] One or more errors occurred.
-[Microsoft.Identity.Client.MsalClientException] Could not use the certificate for signing. See inner exception for details. Possible cause: this may be a known issue with apps build against .NET Desktop 4.6 or lower. Either target a higher version of .NET desktop - 4.6.1 and above, or use a different certificate type (non-CNG) or sign your own assertion as described at aka.ms/msal-net-signed-assertion.
-[System.Security.Cryptography.CryptographicException] Invalid provider type specified.
-````
+Microsoft's current [Exchange Online app-only procedure](https://learn.microsoft.com/en-us/powershell/exchange/app-only-auth-powershell-v2) specifies that CNG certificates are unsupported for that flow and describes CSP certificate creation. Follow those requirements along with the documented module and PowerShell prerequisites.
 
-Funnily enough the same certificate and cmdlets were working fine with PowerShell 7. 
+## Diagnose before exporting a private key
 
-After quite some troubleshooting I've found out the problem was caused by the certificate's private key using [*Cryptography Next Generate (CNG)*](https://docs.microsoft.com/en-us/mem/configmgr/core/plan-design/network/cng-certificates-overview) template rather than RSA. 
+Check the full inner exception, then verify:
 
-Not having direct access to the CA releasing the certificate I could not change this so I had to resort on either running the automation in PowerShell 7 or update the certificate itself. 
+- The certificate meets the target authentication flow's key/provider requirements.
+- The execution identity can access its private key. A certificate in an administrator's personal store is not automatically available to a scheduled task or service account.
+- The app registration contains the matching public certificate and it is within its validity period.
+- The connection method matches the host. `-CertificateThumbprint` is Windows-only; certificate-object and file options have their own requirements.
 
-Luckily this is easily done via OpenSSL. Let's see how.
+For an unsupported provider, request or create a certificate using the documented provider and your organisation's certificate policy, then deploy it to the actual automation identity. Test the new credential before removing the old registration or key material, so that you have a controlled rollback path.
 
-## Convert Certificate private key from CNG to RSA
+## Why the old OpenSSL commands were removed
 
-If you have installed Git, cygwin or Windows Subsystem for Linux you just need to fire a bash prompt and use the following commands:
+Re-encoding or exporting an RSA private key does not itself guarantee a compatible Windows provider association on import. The previous sequence also wrote an unencrypted intermediate private key with `openssl rsa`, despite describing the local workflow as safe.
 
-```bash
-# Extract the public key from the cert 
-OpenSSL pkcs12 -in "CNGCertificate.pfx" -nokeys -out "temp.cer"
+I have removed that sequence rather than presenting it as a current deployment recipe. If a migration genuinely requires private-key export, use an approved, encrypted handling process and validate the resulting provider on the destination host. Do not export keys simply to work around an error that could instead be an account-permission or certificate-selection problem.
 
-# Extract the private key
-OpenSSL pkcs12 -in "CNGCertificate.pfx" -nocerts -out "temp.pem"
-
-# Convert key to RSA
-OpenSSL rsa -inform PEM -in "temp.pem" -out "temp.rsa"
-
-# Finally create a new pfx file
-OpenSSL pkcs12 -export -in "temp.cer" -inkey "temp.rsa" -out "RSACertificate.pfx"
-````
-
-**Note:** In the above commands I am not using a password for the certificate as everything is local to my machine but a password is definitely *required* when exporting a certificate together with the private key.
-{: .notice--warning}
-
-Once the new pfx file has been created all *temporary* certificates can be safely removed from the system and connection to Exchange Online will go through just fine. 
-
-Again if you can use PowerShell 7 you will not face this issue but in case you're stuck with version 5.1 and facing this error message hopefully this post can save you some headaches. 
-
-Full credit for the solution goes to this [StackOverFlow thread](https://stackoverflow.com/questions/22581811/invalid-provider-type-specified-cryptographicexception-when-trying-to-load-pri/34103154#34103154)
+This preserves the lesson from the original incident: inspect the key provider and execution context, not just whether a PFX can be opened on your own machine.
