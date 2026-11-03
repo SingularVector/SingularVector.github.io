@@ -1,40 +1,161 @@
 ---
 layout: default
 ---
-{%- assign locale = page.locale | default: layout.locale | default: site.locale %}
+
+{%- assign locale = page.locale | default: layout.locale | default: site.locale
+%}
 <main id="main" class="home-refresh" aria-label="Blog homepage">
-{% if paginator == nil or paginator.page == 1 %}
-<section class="home-hero" aria-labelledby="home-heading">
-  <p class="home-eyebrow">NOTES FROM THE TERMINAL</p>
-  <h1 id="home-heading">Practical automation.<br><span>Beyond the script.</span></h1>
-  <p class="home-intro">I’m Daniele, a systems and infrastructure engineer with 20+ years of experience across Windows, Linux and identity. I build automation that makes complex environments easier to operate and maintain.</p>
-  <p class="home-summary">PowerShell tooling, identity workflows and Linux operations, with Python and infrastructure as code in the wider engineering toolkit.</p>
-  <div class="home-actions"><a class="home-button" href="#latest">Read the articles <span aria-hidden="true">↗</span></a><a class="home-text-link" href="https://github.com/SingularVector">Explore my code <span aria-hidden="true">↗</span></a></div>
-  <div class="home-byline"><span class="home-prompt" aria-hidden="true">&gt;_</span><span>Built, tested, occasionally broken. Written down so you don’t have to start from scratch.</span></div>
-</section>
-<section class="home-section" aria-labelledby="featured-heading">
-  <div class="home-section-heading"><div><p class="home-eyebrow">A FEW GOOD STARTING POINTS</p><h2 id="featured-heading">From the workbench</h2></div><span class="home-section-note">Selected guides</span></div>
-  <div class="home-feature-grid">
-    <article class="home-feature"><p class="home-label">01 / POWERSHELL + IDENTITY</p><h3><a href="{% post_url 2024-07-27-PowerShell-Generate-Unique-Upn %}">Unique UPNs.<br>Across the forest.</a></h3><p>Two PowerShell functions for generating unique user principal names across an Active Directory forest.</p><a class="home-card-link" href="{% post_url 2024-07-27-PowerShell-Generate-Unique-Upn %}">Read the guide <span aria-hidden="true">↗</span></a></article>
-    <article class="home-feature"><p class="home-label">02 / LINUX + EVERYDAY TOOLS</p><h3><a href="{% post_url 2024-09-20-SSH-Connection-Manager %}">Your servers.<br>One SSH config.</a></h3><p>Keep frequently used connections in a simple configuration file, ready to use from your terminal.</p><a class="home-card-link" href="{% post_url 2024-09-20-SSH-Connection-Manager %}">Read the guide <span aria-hidden="true">↗</span></a></article>
-    <article class="home-feature"><p class="home-label">03 / AUTOMATION + DISTRIBUTION</p><h3><a href="{% post_url 2021-06-02-Setup-Internal-PowerShell-Repository %}">Give your modules<br>a home.</a></h3><p>Build an internal NuGet repository to distribute PowerShell modules to your team.</p><a class="home-card-link" href="{% post_url 2021-06-02-Setup-Internal-PowerShell-Repository %}">Read the guide <span aria-hidden="true">↗</span></a></article>
-  </div>
-</section>
-<section class="home-section home-topics" aria-labelledby="topics-heading">
- <div class="home-section-heading"><div><p class="home-eyebrow">FOLLOW A THREAD</p><h2 id="topics-heading">What are you working on?</h2></div></div>
- <div class="home-topic-links">{% for topic in site.data.topics %}<a href="{{ topic.id | prepend: '/topics/' | append: '/' | relative_url }}"><span>{{ topic.title | escape }}</span><small>{{ topic.description | escape }}</small><b aria-hidden="true">↗</b></a>{% endfor %}</div>
-</section>
-{% else %}
-<section class="home-hero"><h1>Articles — page {{ paginator.page }}</h1></section>
-{% endif %}
-<section class="home-section home-latest" id="latest" aria-labelledby="latest-heading">
-  <div class="home-section-heading"><div><p class="home-eyebrow">THE JOURNAL</p><h2 id="latest-heading">Latest articles</h2></div><a class="home-text-link" href="{{ '/articles/' | relative_url }}">All articles <span aria-hidden="true">↗</span></a></div>
-  {% if paginator %}{% assign home_posts = paginator.posts %}{% else %}{% assign home_posts = site.posts %}{% endif %}
-  <div class="home-post-list">
-  {% for post in home_posts %}
-    <article class="home-post"><div class="home-post-date"><time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%b %Y" }}</time></div><div class="home-post-body"><p class="home-label">{{ post.categories | first | escape }}</p><h3><a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a></h3><p>{{ post.excerpt | strip_html | truncate: 180 }}</p></div><span class="home-post-arrow" aria-hidden="true">↗</span></article>
-  {% endfor %}
-  </div>
-  {% include paginator.html locale=locale %}
-</section>
+  {% if paginator == nil or paginator.page == 1 %}
+  <section class="home-hero" aria-labelledby="home-heading">
+    <p class="home-eyebrow">NOTES FROM THE TERMINAL</p>
+    <h1 id="home-heading">
+      Practical automation.<br /><span>Beyond the script.</span>
+    </h1>
+    <p class="home-intro">
+      I’m Daniele, a systems and infrastructure engineer with 25+ years of
+      experience across Windows, Linux and identity. I build automation that
+      makes complex environments easier to operate and maintain.
+    </p>
+    <p class="home-summary">
+      PowerShell tooling, identity workflows and Linux operations, with Python
+      and infrastructure as code in the wider engineering toolkit.
+    </p>
+    <div class="home-actions">
+      <a class="home-button" href="#latest"
+        >Read the articles <span aria-hidden="true">↗</span></a
+      ><a class="home-text-link" href="https://github.com/SingularVector"
+        >Explore my code <span aria-hidden="true">↗</span></a
+      >
+    </div>
+    <div class="home-byline">
+      <span class="home-prompt" aria-hidden="true">&gt;_</span
+      ><span
+        >Built, tested, occasionally broken. Written down so you don’t have to
+        start from scratch.</span
+      >
+    </div>
+  </section>
+  <section class="home-section" aria-labelledby="featured-heading">
+    <div class="home-section-heading">
+      <div>
+        <p class="home-eyebrow">A FEW GOOD STARTING POINTS</p>
+        <h2 id="featured-heading">From the workbench</h2>
+      </div>
+      <span class="home-section-note">Selected guides</span>
+    </div>
+    <div class="home-feature-grid">
+      <article class="home-feature">
+        <p class="home-label">01 / POWERSHELL + IDENTITY</p>
+        <h3>
+          <a href="{% post_url 2024-07-27-PowerShell-Generate-Unique-Upn %}"
+            >Unique UPNs.<br />Across the forest.</a
+          >
+        </h3>
+        <p>
+          Two PowerShell functions for generating unique user principal names
+          across an Active Directory forest.
+        </p>
+        <a
+          class="home-card-link"
+          href="{% post_url 2024-07-27-PowerShell-Generate-Unique-Upn %}"
+          >Read the guide <span aria-hidden="true">↗</span></a
+        >
+      </article>
+      <article class="home-feature">
+        <p class="home-label">02 / LINUX + EVERYDAY TOOLS</p>
+        <h3>
+          <a href="{% post_url 2024-09-20-SSH-Connection-Manager %}"
+            >Your servers.<br />One SSH config.</a
+          >
+        </h3>
+        <p>
+          Keep frequently used connections in a simple configuration file, ready
+          to use from your terminal.
+        </p>
+        <a
+          class="home-card-link"
+          href="{% post_url 2024-09-20-SSH-Connection-Manager %}"
+          >Read the guide <span aria-hidden="true">↗</span></a
+        >
+      </article>
+      <article class="home-feature">
+        <p class="home-label">03 / AUTOMATION + DISTRIBUTION</p>
+        <h3>
+          <a
+            href="{% post_url 2021-06-02-Setup-Internal-PowerShell-Repository %}"
+            >Give your modules<br />a home.</a
+          >
+        </h3>
+        <p>
+          Build an internal NuGet repository to distribute PowerShell modules to
+          your team.
+        </p>
+        <a
+          class="home-card-link"
+          href="{% post_url 2021-06-02-Setup-Internal-PowerShell-Repository %}"
+          >Read the guide <span aria-hidden="true">↗</span></a
+        >
+      </article>
+    </div>
+  </section>
+  <section class="home-section home-topics" aria-labelledby="topics-heading">
+    <div class="home-section-heading">
+      <div>
+        <p class="home-eyebrow">FOLLOW A THREAD</p>
+        <h2 id="topics-heading">What are you working on?</h2>
+      </div>
+    </div>
+    <div class="home-topic-links">
+      {% for topic in site.data.topics %}<a
+        href="{{ topic.id | prepend: '/topics/' | append: '/' | relative_url }}"
+        ><span>{{ topic.title | escape }}</span
+        ><small>{{ topic.description | escape }}</small
+        ><b aria-hidden="true">↗</b></a
+      >{% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <section class="home-hero">
+    <h1>Articles — page {{ paginator.page }}</h1>
+  </section>
+  {% endif %}
+  <section
+    class="home-section home-latest"
+    id="latest"
+    aria-labelledby="latest-heading"
+  >
+    <div class="home-section-heading">
+      <div>
+        <p class="home-eyebrow">THE JOURNAL</p>
+        <h2 id="latest-heading">Latest articles</h2>
+      </div>
+      <a class="home-text-link" href="{{ '/articles/' | relative_url }}"
+        >All articles <span aria-hidden="true">↗</span></a
+      >
+    </div>
+    {% if paginator %}{% assign home_posts = paginator.posts %}{% else %}{%
+    assign home_posts = site.posts %}{% endif %}
+    <div class="home-post-list">
+      {% for post in home_posts %}
+      <article class="home-post">
+        <div class="home-post-date">
+          <time datetime="{{ post.date | date_to_xmlschema }}"
+            >{{ post.date | date: "%b %Y" }}</time
+          >
+        </div>
+        <div class="home-post-body">
+          <p class="home-label">{{ post.categories | first | escape }}</p>
+          <h3>
+            <a href="{{ post.url | relative_url }}"
+              >{{ post.title | escape }}</a
+            >
+          </h3>
+          <p>{{ post.excerpt | strip_html | truncate: 180 }}</p>
+        </div>
+        <span class="home-post-arrow" aria-hidden="true">↗</span>
+      </article>
+      {% endfor %}
+    </div>
+    {% include paginator.html locale=locale %}
+  </section>
 </main>

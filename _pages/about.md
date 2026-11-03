@@ -9,7 +9,7 @@ toc: true
 
 SingularVector is my engineering notebook: practical work around infrastructure, systems and automation—guides, troubleshooting notes, tools and configurations built around real problems.
 
-I’m Daniele, a systems and infrastructure engineer with more than 20 years of experience across Windows, Linux, identity and automation.
+I’m Daniele, a systems and infrastructure engineer with more than 25 years of experience across Windows, Linux, identity and automation.
 
 My [CV](https://catanesi.pages.dev/) covers my professional experience and technical background in more detail.
 
