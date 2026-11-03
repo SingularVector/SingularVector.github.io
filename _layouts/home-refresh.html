@@ -24,7 +24,6 @@ layout: default
  <div class="home-section-heading"><div><p class="home-eyebrow">FOLLOW A THREAD</p><h2 id="topics-heading">What are you working on?</h2></div></div>
  <div class="home-topic-links">{% for topic in site.data.topics %}<a href="{{ topic.id | prepend: '/topics/' | append: '/' | relative_url }}"><span>{{ topic.title | escape }}</span><small>{{ topic.description | escape }}</small><b aria-hidden="true">↗</b></a>{% endfor %}</div>
 </section>
-<aside class="home-lab" aria-labelledby="lab-heading"><div><p class="home-eyebrow">INFRASTRUCTURE IN PRACTICE</p><h2 id="lab-heading">Cloud infrastructure notebook.</h2><p>A companion notebook for cloud infrastructure, automation and hands-on experiments. Practical approaches, technical decisions and lessons from engineering work.</p></div><a class="home-text-link" href="https://singularvector.github.io/terraforming-my-career/">Read the infrastructure notes <span aria-hidden="true">↗</span></a></aside>
 {% else %}
 <section class="home-hero"><h1>Articles — page {{ paginator.page }}</h1></section>
 {% endif %}

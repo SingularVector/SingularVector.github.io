@@ -29,7 +29,7 @@ I want the next person opening a script to understand what it does without havin
 
 PowerShell has deep roots here. You’ll also find Linux tooling, Python and infrastructure automation, with cloud infrastructure and infrastructure as code forming part of the wider picture. I explain the reasoning, assumptions and limitations so you can judge whether an approach fits your environment.
 
-My [PowerShell Functions](https://github.com/SingularVector/PowerShell-Functions) repository contains individual tools for administration and automation. [IT-ToolBox](https://github.com/SingularVector/IT-ToolBox) brings reusable tools together in a module. The companion [infrastructure notebook](https://singularvector.github.io/terraforming-my-career/) collects technical references, configurations and hands-on work.
+My [PowerShell Functions](https://github.com/SingularVector/PowerShell-Functions) repository contains individual tools for administration and automation. [IT-ToolBox](https://github.com/SingularVector/IT-ToolBox) brings reusable tools together in a module.
 
 ## Get in touch
 
