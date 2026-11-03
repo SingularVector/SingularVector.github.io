@@ -1,3 +1,10 @@
 <!-- start custom footer snippets -->
 
+{% assign privacy_page = site.pages | where: "permalink", "/privacy/" | first %}
+{% if privacy_page %}
+  {% unless privacy_page.published == false %}
+    <p><a href="{{ '/privacy/' | relative_url }}">Privacy &amp; Cookies</a></p>
+  {% endunless %}
+{% endif %}
+
 <!-- end custom footer snippets -->
