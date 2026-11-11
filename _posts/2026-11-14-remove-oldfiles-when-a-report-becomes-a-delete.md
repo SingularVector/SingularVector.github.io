@@ -1,6 +1,6 @@
 ---
 title: "Rebuilding Remove-OldFiles: A SQL Table, Not a Platform"
-date: 2026-11-12
+date: 2026-11-14
 categories:
   - PowerShell
   - DevOps
