@@ -84,7 +84,9 @@ Execution scans again rather than trusting yesterday's report. An incomplete sca
 
 These checks reduce ordinary surprises; they do not lock the filesystem or make deletion reversible. The test suite uses disposable files and fixed timestamps to check selection boundaries, protection and failure paths. Real Windows permissions, locks and SQL access still need acceptance testing in the intended environment.
 
-That gives us a useful foundation: explain the selection, inspect the result, and require an explicit decision to remove anything. In [the second part]({% post_url 2026-11-12-remove-oldfiles-when-a-report-becomes-a-delete %}), the rules move into SQL Server—with a little less architecture than I briefly thought we needed.
+{% assign cleanup_part_two = site.posts | where: "slug", "remove-oldfiles-when-a-report-becomes-a-delete" | first %}
+
+That gives us a useful foundation: explain the selection, inspect the result, and require an explicit decision to remove anything. In {% if cleanup_part_two %}[the second part]({{ cleanup_part_two.url | relative_url }}){% else %}the second part (scheduled for November 14){% endif %}, the rules move into SQL Server—with a little less architecture than I briefly thought we needed.
 
 ### Further Reading
 

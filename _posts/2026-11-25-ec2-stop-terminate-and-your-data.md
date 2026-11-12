@@ -50,6 +50,6 @@ Stopped instances can still leave billable resources, including EBS volumes. AWS
 
 An EBS snapshot captures data written to the volume, not writes still buffered by the application or operating system. Coordinate writes with the application; for a root volume, AWS recommends stopping the instance before taking the snapshot. See [creating EBS snapshots](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-creating-snapshot.html).
 
-Before termination or replacement, identify the mounted storage, inspect deletion settings, preserve required data and confirm the recovery procedure. This applies just as much when the deletion comes from a [Terraform replacement plan]({% post_url 2026-11-03-terraform-plan-before-apply %}) as when someone clicks **Terminate** in the console.
+Before termination or replacement, identify the mounted storage, inspect deletion settings, preserve required data and confirm the recovery procedure. This applies just as much when the deletion comes from a [Terraform replacement plan]({% post_url 2026-11-20-terraform-plan-before-apply %}) as when someone clicks **Terminate** in the console.
 
 The important boundary is the data's lifetime. Once that is explicit, deciding whether an instance can safely disappear becomes a much more practical conversation.

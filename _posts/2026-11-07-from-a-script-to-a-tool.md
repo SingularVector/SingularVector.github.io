@@ -116,7 +116,9 @@ We have talked about explicit inputs, useful results, failure handling and tests
 
 In [my original cleanup article]({% post_url 2018-12-27-PowerShell-Delete-Files-Older-Than-Days %}), I started with deleting files older than a given number of days. That grew into [Remove-OldFiles](https://github.com/SingularVector/Remove-Old-Files), which I used at a previous company to manage logs from different automations, each with its own retention policy, and to support other teams with similar cleanup needs. A central CSV held the rules, and local ignore markers provided exceptions.
 
-The rebuild stays in the original repository. In [the first part]({% post_url 2026-11-10-rebuilding-remove-oldfiles-start-with-the-rules %}), we make cleanup decisions visible before removing anything. In [the second]({% post_url 2026-11-12-remove-oldfiles-when-a-report-becomes-a-delete %}), we replace the CSV with SQL Server rules and keep the scheduled job deliberately simple. There are a few assumptions from my earlier code to revisit along the way :)
+{% assign cleanup_part_two = site.posts | where: "slug", "remove-oldfiles-when-a-report-becomes-a-delete" | first %}
+
+The rebuild stays in the original repository. In [the first part]({% post_url 2026-11-10-rebuilding-remove-oldfiles-start-with-the-rules %}), we make cleanup decisions visible before removing anything. In {% if cleanup_part_two %}[the second]({{ cleanup_part_two.url | relative_url }}){% else %}the second part (scheduled for November 14){% endif %}, we replace the CSV with SQL Server rules and keep the scheduled job deliberately simple. There are a few assumptions from my earlier code to revisit along the way :)
 
 ### Further Reading
 
