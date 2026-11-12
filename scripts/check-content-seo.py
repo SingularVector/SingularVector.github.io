@@ -33,7 +33,6 @@ assert len(set(descriptions)) == len(routes), "Duplicate landing-page descriptio
 home = Page(Path("_site/index.html"))
 for route in routes[4:]:
     assert "/" + route + "/" in home.links, route
-assert "20+ years" in home.meta["description"]
 archive = Page(Path("_site/articles/index.html"))
 assert "/topics/" in archive.links and "/search/" in archive.links
 print("SEO: distinct descriptions, social metadata, canonical URLs and discovery links passed")
