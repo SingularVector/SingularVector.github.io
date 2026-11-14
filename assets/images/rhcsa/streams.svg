@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="570" viewBox="0 0 1200 570" role="img" aria-labelledby="title desc">
+<title id="title">Same terminal, separate streams</title><desc id="desc">cat reads service.txt and a missing path. Standard output goes to result.txt, while standard error goes separately to errors.txt.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 Z" fill="#64748b"/></marker></defs>
+<rect width="1200" height="570" rx="20" fill="#f8fafc"/>
+<style>text{font-family:Arial,sans-serif;fill:#172033}.title{font-size:30px;font-weight:700}.label{font-size:23px;font-weight:700}.small{font-size:20px}.code{font-family:monospace;font-size:22px}.line{fill:none;stroke:#64748b;stroke-width:3;marker-end:url(#arrow)}</style>
+<text x="45" y="55" class="title">Same terminal, separate streams</text>
+<text x="45" y="105" class="code">cat service.txt missing.txt &gt; result.txt 2&gt; errors.txt</text>
+<rect x="45" y="205" width="290" height="100" rx="12" fill="#fff" stroke="#cbd5e1"/>
+<text x="65" y="243" class="label">service.txt</text>
+<text x="65" y="277" class="small">Existing input</text>
+<rect x="45" y="350" width="290" height="100" rx="12" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="65" y="388" class="label">missing.txt</text>
+<text x="65" y="422" class="small">Path does not exist</text>
+<rect x="440" y="275" width="240" height="100" rx="12" fill="#fff" stroke="#cbd5e1"/>
+<text x="460" y="313" class="label">cat</text>
+<text x="460" y="347" class="small">Reads the paths</text>
+<rect x="825" y="180" width="330" height="100" rx="12" fill="#eff6ff" stroke="#cbd5e1"/>
+<text x="845" y="218" class="label">result.txt</text>
+<text x="845" y="252" class="small">service ready</text>
+<rect x="825" y="370" width="330" height="100" rx="12" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="845" y="408" class="label">errors.txt</text>
+<text x="845" y="442" class="small">Missing-file diagnostic</text>
+<path d="M335 255 L395 255 L395 305 L435 305" class="line"/>
+<path d="M335 400 L395 400 L395 345 L435 345" class="line"/>
+<path d="M680 305 L735 305 L735 230 L820 230" class="line"/>
+<path d="M680 345 L735 345 L735 420 L820 420" class="line"/>
+<text x="710" y="190" class="small">STDOUT · 1</text>
+<text x="710" y="470" class="small">STDERR · 2</text>
+<text x="45" y="530" class="small">Redirection changes the connections; output and errors remain separate streams.</text>
+</svg>
