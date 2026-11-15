@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build using GitHub Pages tooling
         uses: actions/jekyll-build-pages@v1
         with:
@@ -38,7 +38,7 @@ jobs:
       - name: Check rendered asset references
         run: python3 scripts/check-article-assets.py
       - name: Retain generated site for inspection
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: validated-jekyll-site
           path: _site/
