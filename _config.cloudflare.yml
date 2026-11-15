@@ -1,0 +1,3 @@
+# Apply after _config.yml when building on Cloudflare Pages.
+url: "https://singularvector.pages.dev"
+baseurl: ""
