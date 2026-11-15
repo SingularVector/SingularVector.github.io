@@ -1,0 +1,27 @@
+---
+layout: null
+permalink: /sitemap.txt
+sitemap: false
+---
+{%- capture sitemap_urls -%}
+{%- assign collections = site.collections | where_exp: 'collection', 'collection.output != false' -%}
+{%- for collection in collections -%}
+{%- for doc in collection.docs -%}
+{%- unless doc.sitemap == false or doc.published == false -%}
+{{- doc.canonical_url | default: doc.url | replace: '/index.html', '/' | absolute_url }}
+{% endunless -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- for doc in site.html_pages -%}
+{%- unless doc.sitemap == false or doc.published == false or doc.url == '/404.html' -%}
+{{- doc.canonical_url | default: doc.url | replace: '/index.html', '/' | absolute_url }}
+{% endunless -%}
+{%- endfor -%}
+{%- endcapture -%}
+{%- assign urls = sitemap_urls | split: '
+' | uniq | sort -%}
+{%- for url in urls -%}
+{%- unless url == empty -%}
+{{- url }}
+{% endunless -%}
+{%- endfor -%}
