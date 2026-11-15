@@ -1,7 +1,6 @@
 ---
 title: "The Dot Makes a Difference: Copying Files in Linux"
 date: 2026-12-03
-published: false
 categories:
   - Linux
 tags:
