@@ -14,8 +14,8 @@ sitemap: false
 <loc>{{ page.url | replace:'/index.html','/' | absolute_url | xml_escape }}</loc>
 {% if page.last_modified_at %}<lastmod>{{ page.last_modified_at | date_to_xmlschema }}</lastmod>
 {% endif %}</url>
-{% endfor %}{% assign static_files = site.static_files | where_exp:'file','file.extname == ".htm" or file.extname == ".html" or file.extname == ".xhtml" or file.extname == ".pdf"' | where_exp:'page','page.sitemap != false' | where_exp:'page','page.name != "404.html"' %}{% for file in static_files %}<url>
+{% endfor %}{% assign sitemap_extensions = '.htm,.html,.xhtml,.pdf' | split: ',' %}{% assign static_files = site.static_files | where_exp:'file','file.sitemap != false' | where_exp:'file','file.name != "404.html"' %}{% for file in static_files %}{% if sitemap_extensions contains file.extname %}<url>
 <loc>{{ file.path | replace:'/index.html','/' | absolute_url | xml_escape }}</loc>
 <lastmod>{{ file.modified_time | date_to_xmlschema }}</lastmod>
 </url>
-{% endfor %}</urlset>
+{% endif %}{% endfor %}</urlset>

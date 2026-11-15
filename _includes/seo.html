@@ -138,9 +138,6 @@
 {% if site.google_site_verification %}
   <meta name="google-site-verification" content="{{ site.google_site_verification }}" />
 {% endif %}
-{% for verification in site.google_site_verification_additional %}
-  <meta name="google-site-verification" content="{{ verification | escape }}" />
-{% endfor %}
 {% if site.bing_site_verification %}
   <meta name="msvalidate.01" content="{{ site.bing_site_verification }}">
 {% endif %}
