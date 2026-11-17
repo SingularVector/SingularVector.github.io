@@ -1,7 +1,6 @@
 ---
 title: "Two Names, One File: Understanding Linux Links"
-date: 2026-11-19
-published: false
+date: 2026-11-18
 categories:
   - Linux
 tags:
