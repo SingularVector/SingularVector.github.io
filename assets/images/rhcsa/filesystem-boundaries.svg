@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">One directory tree with two filesystem allocations</title>
+  <desc id="desc">Illustrative layout. The rhel-root filesystem mounted at slash contains etc and var slash log and has one gigabyte available. A different filesystem rhel-home is mounted at slash home and has 96 gigabytes available. Free space in home does not become free space on root.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 Z" fill="#64748b"/></marker></defs>
+  <style>text{font-family:Arial,sans-serif;fill:#172033}.title{font-size:32px;font-weight:700}.heading{font-size:27px;font-weight:700}.body{font-size:24px}.code{font-family:monospace;font-size:27px}.small{font-size:22px}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  <rect width="1200" height="700" rx="20" fill="#f8fafc"/>
+  <text x="45" y="65" class="title">One tree does not mean one pool of free space</text>
+  <text x="45" y="110" class="small">Illustrative layout: /var/log shares root; /home is a separate mount.</text>
+  <rect x="45" y="155" width="510" height="420" rx="14" fill="#eff6ff" stroke="#cbd5e1"/>
+  <text x="70" y="200" class="heading">rhel-root mounted at /</text>
+  <text x="70" y="240" class="body">20 GB total · 1 GB available</text>
+  <text x="80" y="310" class="code">/</text>
+  <path d="M100 330 V450 M100 365 H145 M100 410 H145 M100 450 H145" fill="none" stroke="#94a3b8" stroke-width="3"/>
+  <text x="160" y="375" class="code">etc/</text>
+  <text x="160" y="420" class="code">var/log/</text>
+  <text x="160" y="460" class="code">home/</text>
+  <text x="70" y="535" class="small">/var/log uses root's allocation.</text>
+  <rect x="680" y="300" width="475" height="275" rx="14" fill="#f0fdf4" stroke="#cbd5e1"/>
+  <text x="705" y="350" class="heading">rhel-home mounted at /home</text>
+  <text x="705" y="400" class="body">100 GB total · 96 GB available</text>
+  <text x="705" y="465" class="code">student/</text>
+  <text x="705" y="535" class="small">Home files use this allocation.</text>
+  <path d="M270 450 H675" class="line"/>
+  <text x="390" y="430" class="small">mount boundary</text>
+  <text x="45" y="635" class="body">Deleting files in /home will not free space on rhel-root.</text>
+</svg>

@@ -40,6 +40,8 @@
       description: Inspect an archive and choose where its contents will land.
     - post: 2026-12-03-the-dot-makes-a-difference
       description: Check directory levels and hidden files before trusting a copy.
+    - post: 2026-12-05-which-filesystem-holds-your-files
+      description: Identify the filesystem behind a directory before trying to reclaim space.
 
 - id: script-to-tool
   title: From a useful script to dependable automation
