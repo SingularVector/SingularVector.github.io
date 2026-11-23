@@ -4,6 +4,8 @@ main:
     url: /articles/
   - title: "Topics"
     url: /topics/
+  - title: "Code & tools"
+    url: /code-and-tools/
   - title: "About"
     url: /about/
   - title: "Search"

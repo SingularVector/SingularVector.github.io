@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">SingularVector — Practical automation. Beyond the script.</title>
+  <desc id="desc">A dark terminal-inspired card for the SingularVector engineering notebook, covering PowerShell, Linux, systems and Git.</desc>
+  <rect width="1200" height="630" fill="#252a34"/>
+  <rect x="35" y="35" width="1130" height="560" rx="10" fill="#2b313d" stroke="#424a57" stroke-width="2"/>
+  <path d="M 36 105 H 1164" stroke="#424a57" stroke-width="2"/>
+  <circle cx="68" cy="70" r="7" fill="#8bdace"/>
+  <circle cx="92" cy="70" r="7" fill="#738393"/>
+  <circle cx="116" cy="70" r="7" fill="#738393"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="1087" y="77" fill="#b1bac7" font-size="19" text-anchor="end">ENGINEERING NOTEBOOK</text>
+    <text x="85" y="181" fill="#8bdace" font-size="26" font-weight="700" letter-spacing="1">SingularVector</text>
+    <text x="80" y="292" fill="#eef1f5" font-size="69" font-weight="700" letter-spacing="-2">Practical automation.</text>
+    <text x="80" y="378" fill="#8bdace" font-size="69" font-weight="700" letter-spacing="-2">Beyond the script.</text>
+    <text x="85" y="444" fill="#b1bac7" font-size="25">Guides, tools and notes built around real problems.</text>
+    <path d="M 85 493 H 1115" stroke="#424a57" stroke-width="2"/>
+    <text x="85" y="546" fill="#eef1f5" font-size="21">PowerShell / Linux / Systems / Git</text>
+    <text x="1115" y="546" fill="#b1bac7" font-size="20" text-anchor="end">singularvector.github.io</text>
+  </g>
+</svg>

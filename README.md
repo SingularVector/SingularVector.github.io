@@ -1,3 +1,11 @@
+## Reading paths, tools and sharing
+
+- `_data/reading_paths.yml` defines ordered paths using article filenames without `.md`. The first topic is the series panel's destination; paths may also appear on other relevant topic pages. Each step needs a short description of the problem it helps solve. Keep each article in one primary path so its series panel has a clear home.
+- `_data/tools.yml` pairs a tool's source with its companion article. A card appears only after that article is published. Keep requirements and release status accurate; the repository remains the source of truth.
+- Drafts (`published: false`), hidden posts and future-dated posts are excluded from reading paths, series panels and tool cards, even in a future-enabled preview. Their links appear after a normal build includes the available article.
+- The RSS invitation uses the existing Atom feed (`/feed.xml`). No new subscription service is involved.
+- Sharing previews use the article's own header image when present, then the branded `assets/images/site/social-card.png`. Edit the matching SVG master and regenerate the PNG when changing the artwork. Override an article with `header.og_image` and `header.og_image_alt`.
+
 ## Choosing homepage articles
 
 “From the workbench” rotates three guides each day (UTC), mixing the posts' first categories where possible. The selection stays the same on refresh. It runs in the browser without tracking or a scheduled rebuild; visitors without JavaScript still get three working cards.

@@ -1,0 +1,31 @@
+---
+title: Code & tools
+layout: discovery
+permalink: /code-and-tools/
+description: "Reusable PowerShell tools and companion examples from SingularVector, with source code, practical explanations and deployment notes."
+eyebrow: FROM THE WORKBENCH
+intro: "The code behind the articles: tools I use, solutions I have revisited, and small examples you can take apart. Start with the explanation, then check the source and its requirements."
+author_profile: false
+---
+<div class="tool-grid">
+{% for tool in site.data.tools %}
+  {% assign tool_article = nil %}
+  {% assign tool_available_posts = site.posts | where_exp: 'post', 'post.published != false' | where_exp: 'post', 'post.hidden != true' | where_exp: 'post', 'post.date <= site.time' %}
+  {% for tool_candidate in tool_available_posts %}
+    {% assign tool_filename = tool_candidate.path | split: '/' | last | remove: '.md' %}
+    {% if tool_filename == tool.post %}{% assign tool_article = tool_candidate %}{% break %}{% endif %}
+  {% endfor %}
+  {% if tool_article %}
+  <article class="tool-card">
+    <p class="discovery-eyebrow">{{ tool.kind | escape }}</p>
+    <h2>{{ tool.title | escape }}</h2>
+    <p>{{ tool.description | escape }}</p>
+    <div class="tool-card__links">
+      <a href="{{ tool_article.url | relative_url }}">Read the explanation<span class="sr-only">: {{ tool.title | escape }}</span> &rarr;</a>
+      <a href="{{ tool.source_url | relative_url }}">{{ tool.source_label | escape }}<span class="sr-only">: {{ tool.title | escape }}</span> &nearr;</a>
+    </div>
+  </article>
+  {% endif %}
+{% endfor %}
+</div>
+<p class="discovery-footnote">The linked repositories remain the source of truth. Follow their installation instructions and test in your own environment; the articles explain the choices and the versions used at the time.</p>

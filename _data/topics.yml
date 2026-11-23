@@ -1,13 +1,13 @@
 # Curated topic groups. Original article categories and URLs stay unchanged.
 - id: powershell
-  title: PowerShell_&_automation
+  title: PowerShell & automation
   description: "PowerShell automation for systems administration: reusable functions, error handling, module distribution and practical fixes."
   categories:
   - PowerShell
   - PowerShell_Tips
 - id: linux
   title: Linux & the terminal
-  description: "Linux operations from the terminal: SSH connection management, command-line disk imaging and a CentOS package-update troubleshooting note."
+  description: "Practical Linux operations: SSH, files, links, redirection and terminal workflows, with explanations you can try in your own lab."
   categories:
   - Linux
 - id: identity
@@ -31,7 +31,7 @@
   categories:
   - Python
 - id: git
-  title: Git_&_version control
+  title: Git & version control
   description: "Practical Git and version-control workflows: repository hygiene, branches, remotes, merging and recovering from mistakes."
   categories:
   - git

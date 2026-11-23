@@ -1,0 +1,6 @@
+{% unless site.atom_feed.hide %}
+<aside class="site-follow" aria-label="Follow the blog">
+  <div><strong>Keep up with the notebook.</strong><p>New articles in your feed reader, without checking back.</p></div>
+  <a href="{% if site.atom_feed.path %}{{ site.atom_feed.path }}{% else %}{{ '/feed.xml' | relative_url }}{% endif %}">Follow via RSS &rarr;</a>
+</aside>
+{% endunless %}

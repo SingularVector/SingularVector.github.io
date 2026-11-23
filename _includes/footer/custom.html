@@ -1,5 +1,7 @@
 <!-- start custom footer snippets -->
 
+{% include follow-feed.html %}
+
 {% assign privacy_page = site.pages | where: "permalink", "/privacy/" | first %}
 {% if privacy_page %}
   {% unless privacy_page.published == false %}

@@ -2,6 +2,7 @@
 layout: discovery
 ---
 {% assign topic = site.data.topics | where: "id", page.topic_id | first %}
+{% include topic-reading-paths.html %}
 {% include topic-posts.html topic=topic %}
 <div class="discovery-toolbar"><span>{{ topic_posts | size }} {% if topic_posts.size == 1 %}article{% else %}articles{% endif %}</span><a href="{{ '/search/' | relative_url }}">Search the archive &rarr;</a></div>
 <div class="discovery-posts">{% for post in topic_posts %}{% include discovery-post.html post=post %}{% endfor %}</div>

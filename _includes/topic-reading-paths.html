@@ -1,0 +1,17 @@
+{% for reading_path in site.data.reading_paths %}
+  {% unless reading_path.topics contains page.topic_id %}{% continue %}{% endunless %}
+  {% include reading-path-posts.html path=reading_path %}
+  {% if reading_path_posts.size > 0 %}
+  <section class="reading-path" id="path-{{ reading_path.id | escape }}" aria-labelledby="path-title-{{ reading_path.id | escape }}">
+    <p class="discovery-eyebrow">A GOOD PLACE TO START</p>
+    <h2 id="path-title-{{ reading_path.id | escape }}">{{ reading_path.title | escape }}</h2>
+    <p class="reading-path__intro">{{ reading_path.description | escape }}</p>
+    <ol class="reading-path__steps">
+      {% for reading_post in reading_path_posts %}
+        {% assign reading_description = reading_path_steps[forloop.index0].description %}
+        <li><a href="{{ reading_post.url | relative_url }}">{{ reading_post.title | escape }}</a><p>{{ reading_description | escape }}</p></li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+{% endfor %}

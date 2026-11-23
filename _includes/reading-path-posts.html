@@ -1,0 +1,14 @@
+{% comment %}Resolve filenames without post_url, which fails for unavailable future posts.{% endcomment %}
+{% assign reading_path_posts = '' | split: ',' %}
+{% assign reading_path_steps = '' | split: ',' %}
+{% assign reading_available_posts = site.posts | where_exp: 'post', 'post.published != false' | where_exp: 'post', 'post.hidden != true' | where_exp: 'post', 'post.date <= site.time' %}
+{% for reading_step in include.path.steps %}
+  {% for reading_candidate in reading_available_posts %}
+    {% assign reading_filename = reading_candidate.path | split: '/' | last | remove: '.md' %}
+    {% if reading_filename == reading_step.post %}
+      {% assign reading_path_posts = reading_path_posts | push: reading_candidate %}
+      {% assign reading_path_steps = reading_path_steps | push: reading_step %}
+      {% break %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}

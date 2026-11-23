@@ -1,0 +1,35 @@
+# A card appears only when its companion article is published and available.
+- title: New-LogEntry
+  kind: PowerShell logging
+  description: Give automations a consistent log format, with buffering, concurrent writes and optional secret redaction.
+  post: 2026-10-24-PowerShell-New-LogEntry-Revised
+  source_url: https://github.com/SingularVector/PowerShell-Functions/tree/master/New-LogEntry
+  source_label: Source and usage
+
+- title: IT-ToolBox
+  kind: PowerShell module
+  description: Reusable automation functions, including logging and the revised string-encryption helpers. Check the repository for current requirements and migration notes.
+  post: 2026-10-23-PowerShell-String-Encryption-IT-ToolBox
+  source_url: https://github.com/SingularVector/IT-ToolBox
+  source_label: Module repository
+
+- title: Remove-Old-Files
+  kind: Windows cleanup · release candidate
+  description: Read retention rules from SQL Server, inspect candidates and require an explicit execution step for cleanup. Lab acceptance remains a release gate.
+  post: 2026-11-14-remove-oldfiles-when-a-report-becomes-a-delete
+  source_url: https://github.com/SingularVector/Remove-Old-Files
+  source_label: Source and implementation guide
+
+- title: Large log files
+  kind: Python companion example
+  description: A small read-only scanner with named arguments, JSON results and separate failure signals. A practical companion to the script-to-tool article.
+  post: 2026-11-07-from-a-script-to-a-tool
+  source_url: /assets/code/script-to-tool/large_logs.py
+  source_label: Python source
+
+- title: LogScanner
+  kind: Go command-line tool
+  description: Search New-LogEntry files by severity, message and time, keeping results tied to their source file and line.
+  post: 2026-11-24-LogScanner-PowerShell-Log-Analysis
+  source_url: https://github.com/SingularVector/LogScanner
+  source_label: Source and command reference

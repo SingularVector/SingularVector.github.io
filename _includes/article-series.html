@@ -1,0 +1,23 @@
+{% for reading_path in site.data.reading_paths %}
+  {% include reading-path-posts.html path=reading_path %}
+  {% assign reading_current = reading_path_posts | where: 'url', page.url | first %}
+  {% if reading_current and reading_path_posts.size > 1 %}
+    {% assign reading_position = 0 %}
+    {% for reading_post in reading_path_posts %}
+      {% if reading_post.url == page.url %}{% assign reading_position = forloop.index %}{% break %}{% endif %}
+    {% endfor %}
+    <nav class="article-series" aria-label="Reading path">
+      <details>
+        <summary>{{ reading_path.title | escape }} <span>Part {{ reading_position }} of {{ reading_path_posts.size }}</span></summary>
+        <ol>
+          {% for reading_post in reading_path_posts %}
+            <li>{% if reading_post.url == page.url %}<span aria-current="page">{{ reading_post.title | escape }}</span>{% else %}<a href="{{ reading_post.url | relative_url }}">{{ reading_post.title | escape }}</a>{% endif %}</li>
+          {% endfor %}
+        </ol>
+        {% assign reading_topic = reading_path.topics | first %}
+        <a class="article-series__all" href="{{ reading_topic | prepend: '/topics/' | append: '/' | relative_url }}#path-{{ reading_path.id | escape }}">Explore this reading path &rarr;</a>
+      </details>
+    </nav>
+    {% break %}
+  {% endif %}
+{% endfor %}

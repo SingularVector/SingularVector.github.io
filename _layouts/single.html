@@ -48,6 +48,8 @@ layout: default
         {% endunless %}
       {% endif %}
 
+      {% if page.collection == 'posts' %}{% include article-series.html %}{% endif %}
+
       <section class="page__content e-content" itemprop="text">
         {% if page.toc %}
           {% if page.collection == 'posts' %}

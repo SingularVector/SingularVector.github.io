@@ -30,10 +30,17 @@
   {%- assign author_twitter = author.twitter | replace: "@", "" -%}
 {%- endif -%}
 
-{%- assign page_large_image = page.header.og_image | default: page.header.overlay_image | default: page.header.image | absolute_url | escape -%}
-{%- assign page_teaser_image = page.header.teaser | default: site.og_image | absolute_url | escape -%}
-{%- assign site_og_image = site.og_image | absolute_url | escape -%}
-{%- assign og_image_alt = page.header.og_image_alt | default: site.og_image_alt | escape -%}
+{%- assign social_image_path = page.header.og_image | default: page.header.overlay_image | default: page.header.image | default: page.header.teaser | default: site.og_image -%}
+{%- assign social_image = nil -%}
+{%- assign site_og_image = site.og_image | absolute_url -%}
+{%- assign social_image_alt = page.header.og_image_alt | default: page.title -%}
+{%- if social_image_path != blank -%}
+  {%- assign social_image = social_image_path | absolute_url | escape -%}
+  {%- if social_image_path == site.og_image -%}
+    {%- assign social_image_alt = site.og_image_alt | default: site.title -%}
+  {%- endif -%}
+{%- endif -%}
+{%- assign social_image_alt = social_image_alt | escape -%}
 
 {%- if page.date -%}
   {%- assign og_type = "article" -%}
@@ -61,44 +68,28 @@
   <meta property="og:description" content="{{ seo_description }}">
 {% endif %}
 
-{% if page_large_image %}
-  <meta property="og:image" content="{{ page_large_image }}">
-  {% if og_image_alt %}
-    <meta property="og:image:alt" content="{{ og_image_alt }}">
-  {% endif %}
-{% elsif page_teaser_image %}
-  <meta property="og:image" content="{{ page_teaser_image }}">
-  {% if og_image_alt %}
-    <meta property="og:image:alt" content="{{ og_image_alt }}">
+{% if social_image %}
+  <meta property="og:image" content="{{ social_image }}">
+  <meta property="og:image:alt" content="{{ social_image_alt }}">
+  {% if social_image_path == site.og_image %}
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
   {% endif %}
 {% endif %}
 
-{% if site.twitter.username %}
-  <meta name="twitter:site" content="@{{ site.twitter.username | replace: "@", "" }}">
-  <meta name="twitter:title" content="{{ page_title }}">
-  <meta name="twitter:description" content="{{ seo_description }}">
-  <meta name="twitter:url" content="{{ canonical_url }}">
-
-  {% if page_large_image %}
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="{{ page_large_image }}">
-    {% if og_image_alt %}
-      <meta name="twitter:image:alt" content="{{ og_image_alt }}">
-    {% endif %}
-  {% else %}
-    <meta name="twitter:card" content="summary">
-    {% if page_teaser_image %}
-      <meta name="twitter:image" content="{{ page_teaser_image }}">
-      {% if og_image_alt %}
-        <meta name="twitter:image:alt" content="{{ og_image_alt }}">
-      {% endif %}
-    {% endif %}
-  {% endif %}
-
-  {% if author_twitter %}
-    <meta name="twitter:creator" content="@{{ author_twitter }}">
-  {% endif %}
+{% if site.twitter.username %}<meta name="twitter:site" content="@{{ site.twitter.username | replace: '@', '' | escape }}">{% endif %}
+<meta name="twitter:title" content="{{ page_title }}">
+<meta name="twitter:description" content="{{ seo_description }}">
+<meta name="twitter:url" content="{{ canonical_url }}">
+{% if social_image %}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ social_image }}">
+  <meta name="twitter:image:alt" content="{{ social_image_alt }}">
+{% else %}
+  <meta name="twitter:card" content="summary">
 {% endif %}
+{% if author_twitter %}<meta name="twitter:creator" content="@{{ author_twitter | escape }}">{% endif %}
 
 {% if author.fediverse %}
   <meta name="fediverse:creator" content="{{ author.fediverse }}">

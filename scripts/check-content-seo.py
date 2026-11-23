@@ -17,7 +17,7 @@ class Page(HTMLParser):
         if tag == "link" and attrs.get("rel") == "canonical":
             self.canonicals.append(attrs.get("href"))
 
-routes = ["", "about", "articles", "topics"] + ["topics/" + x for x in
+routes = ["", "about", "articles", "topics", "code-and-tools"] + ["topics/" + x for x in
     ["powershell", "linux", "identity", "infrastructure", "python", "git"]]
 descriptions = []
 for route in routes:
@@ -28,11 +28,15 @@ for route in routes:
     assert description and "Hitchikers" not in description, route
     assert page.meta["og:description"] == description, route
     assert page.meta["twitter:description"] == description, route
+    assert page.meta.get("og:image"), (route, "Missing sharing image")
+    assert page.meta.get("twitter:image") == page.meta["og:image"], route
+    assert page.meta.get("twitter:card") == "summary_large_image", route
     descriptions.append(description)
 assert len(set(descriptions)) == len(routes), "Duplicate landing-page descriptions"
 home = Page(Path("_site/index.html"))
-for route in routes[4:]:
+for route in routes[5:]:
     assert "/" + route + "/" in home.links, route
+assert "/code-and-tools/" in home.links
 archive = Page(Path("_site/articles/index.html"))
 assert "/topics/" in archive.links and "/search/" in archive.links
 print("SEO: distinct descriptions, social metadata, canonical URLs and discovery links passed")

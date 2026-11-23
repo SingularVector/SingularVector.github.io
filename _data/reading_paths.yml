@@ -1,0 +1,66 @@
+# Ordered article filenames, without .md. Only published, available posts render.
+- id: git-workflow
+  title: Git without the guesswork
+  topics: [git]
+  description: Keep the repository tidy, work on a branch, share changes and know what you are undoing when something goes wrong.
+  steps:
+    - post: 2025-05-04-getting-started-with-gitignore
+      description: Decide what belongs in the repository before adding more to it.
+    - post: 2026-10-25-getting-started-with-git-branches
+      description: Give a change its own branch, then bring the work back together.
+    - post: 2026-10-27-git-fetch-vs-pull-vs-push
+      description: Understand which direction your commits travel and when files change.
+    - post: 2026-10-29-git-recovery-without-panic
+      description: Choose the right undo operation for the mistake in front of you.
+    - post: 2026-11-01-why-is-git-asking-for-an-upstream
+      description: Give a local branch a clear relationship with its remote counterpart.
+
+- id: ssh-connections
+  title: SSH connections you can explain
+  topics: [linux]
+  description: Start with memorable connection names, then make keys, jump hosts and trust decisions explicit.
+  steps:
+    - post: 2024-09-20-SSH-Connection-Manager
+      description: Put frequently used connection settings in your SSH configuration.
+    - post: 2026-11-04-ssh-config-beyond-host-aliases
+      description: Choose identities and reach hosts through a jump server.
+    - post: 2026-11-28-ssh-keys-known-hosts-security
+      description: Check which machine you are trusting before dismissing a host-key warning.
+
+- id: linux-files
+  title: Know where the files and output go
+  topics: [linux]
+  description: Small terminal experiments that make familiar commands easier to predict.
+  steps:
+    - post: 2026-11-16-linux-redirection-and-pipes
+      description: Follow normal output and errors through redirection and pipes.
+    - post: 2026-11-18-linux-hard-and-symbolic-links
+      description: Separate a file from the names and links used to reach it.
+    - post: 2026-12-01-tar-extract-it-where
+      description: Inspect an archive and choose where its contents will land.
+    - post: 2026-12-03-the-dot-makes-a-difference
+      description: Check directory levels and hidden files before trusting a copy.
+
+- id: script-to-tool
+  title: From a useful script to dependable automation
+  topics: [powershell, infrastructure]
+  description: Start with the handover, then put the ideas to work on a real cleanup solution.
+  steps:
+    - post: 2026-11-07-from-a-script-to-a-tool
+      description: Make inputs, results and failures understandable without the author present.
+    - post: 2026-11-10-rebuilding-remove-oldfiles-start-with-the-rules
+      description: Inspect cleanup decisions and review the report before removing files.
+    - post: 2026-11-14-remove-oldfiles-when-a-report-becomes-a-delete
+      description: Centralise rules in SQL Server and keep the scheduled job simple.
+
+- id: identity-queries
+  title: Identity automation with an explicit scope
+  topics: [identity]
+  description: Useful directory queries, with attention to what they actually check and which objects they return.
+  steps:
+    - post: 2024-07-27-PowerShell-Generate-Unique-Upn
+      description: Propose a UPN candidate without confusing a lookup with a reservation.
+    - post: 2020-08-11-PowerShell-Get-Users-Manager
+      description: Follow management relationships and understand the reporting scope.
+    - post: 2020-08-12-Get-User-Group-Membership
+      description: Query nested membership with deliberate object types and directory boundaries.
