@@ -1,3 +1,7 @@
+## Working on this blog
+
+Read [AGENTS.md](AGENTS.md) for repository instructions and [EDITORIAL_GUIDE.md](EDITORIAL_GUIDE.md) for the writing voice, article selection, publication workflow and discovery conventions. The editorial guide is also the portable file to upload to another chat. Keep these repository copies current; uploaded copies need replacing when the rules change. Both files are excluded from the generated site.
+
 ## Reading paths, tools and sharing
 
 - `_data/reading_paths.yml` defines ordered paths using article filenames without `.md`. The first topic is the series panel's destination; paths may also appear on other relevant topic pages. Each step needs a short description of the problem it helps solve. Keep each article in one primary path so its series panel has a clear home.
