@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Where did the output go?"
+feature_description: "Follow normal output and errors through redirection and pipes, one experiment at a time."
 title: "Where Does the Output Go? Linux Redirection and Pipes"
 date: 2026-11-16
 categories:

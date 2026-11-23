@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Your servers. One SSH config."
+feature_description: "Keep frequently used connections in a simple configuration file, ready from your terminal."
 title: "SSH Connection Manager in Command Line"
 excerpt: "Use OpenSSH host aliases with the correct config path, option precedence and a local configuration check before connecting."
 categories:

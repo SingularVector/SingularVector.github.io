@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Undo without the panic."
+feature_description: "Choose restore, revert or reset by understanding what you want to undo and what you need to keep."
 title: "Git Recovery Without Panic"
 date: 2026-10-28
 categories:

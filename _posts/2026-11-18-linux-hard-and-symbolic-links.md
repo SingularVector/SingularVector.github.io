@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Two names. One file."
+feature_description: "Create hard and symbolic links, then see what survives when a name disappears."
 title: "Two Names, One File: Understanding Linux Links"
 date: 2026-11-18
 categories:

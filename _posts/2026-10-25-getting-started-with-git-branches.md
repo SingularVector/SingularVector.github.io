@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Give your changes a branch."
+feature_description: "Create branches, merge your work and handle conflicts without losing track of the changes."
 title: "Getting Started with Git Branches"
 date: 2026-10-25
 categories:

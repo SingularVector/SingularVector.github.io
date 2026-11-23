@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Leave a useful log."
+feature_description: "Revisit New-LogEntry: readable output, buffering, concurrent writes and secret redaction."
 title: "PowerShell Logging: New-LogEntry Revisited"
 excerpt: "A closer look at the revised New-LogEntry function: predictable output, buffer management, concurrent file writes and optional secret redaction."
 categories:

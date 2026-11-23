@@ -1,0 +1,7 @@
+{% assign featured_post = include.post %}
+<article class="home-feature" data-feature-topic="{{ featured_post.categories | first | default: 'Engineering' | downcase | escape }}">
+  <p class="home-label"><span data-feature-number>{{ include.position | prepend: '0' }}</span> / {{ featured_post.categories | first | default: 'Engineering' | upcase | escape }}</p>
+  <h3><a href="{{ featured_post.url | relative_url }}">{{ featured_post.feature_title | default: featured_post.title | escape }}</a></h3>
+  <p>{{ featured_post.feature_description | default: featured_post.description | default: featured_post.excerpt | strip_html | normalize_whitespace | truncate: 180 | escape }}</p>
+  <a class="home-card-link" href="{{ featured_post.url | relative_url }}">Read the guide <span aria-hidden="true">↗</span></a>
+</article>

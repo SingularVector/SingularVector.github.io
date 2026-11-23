@@ -1,3 +1,21 @@
+## Choosing homepage articles
+
+“From the workbench” rotates three guides each day (UTC), mixing the posts' first categories where possible. The selection stays the same on refresh. It runs in the browser without tracking or a scheduled rebuild; visitors without JavaScript still get three working cards.
+
+To add an article to the pool, put this in its front matter:
+
+```yaml
+featured: true
+```
+
+Choose self-contained guides that are still useful and accurate. A focused troubleshooting article can work too; avoid announcements, stale advice and posts that need another instalment to make sense. Aim for several topics rather than featuring every new post. Drafts marked `published: false` and future-dated posts are excluded, including in future-enabled preview builds. New articles enter the pool after a build includes their published version.
+
+Optional `feature_title` and `feature_description` fields provide short homepage copy; otherwise the card uses the article's title and description/excerpt. The topic comes from its first category. Remove `featured: true` or set it to `false` to retire a selection. Commit and deploy these edits through the normal blog workflow.
+
+The initial pool covers UPN candidates, New-LogEntry, SSH aliases, Linux redirection, Linux links, Git branches, Git recovery, script handover and Terraform plan review. It deliberately avoids filling the homepage with the rebuild series or automatically promoting every recent post.
+
+---
+
 # [Minimal Mistakes Jekyll theme](https://mmistakes.github.io/minimal-mistakes/)
 
 [![LICENSE](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/mmistakes/minimal-mistakes/master/LICENSE)

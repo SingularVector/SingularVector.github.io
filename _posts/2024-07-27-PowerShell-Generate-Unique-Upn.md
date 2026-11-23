@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Unique UPNs, carefully."
+feature_description: "Generate candidate user principal names with explicit directory scope and sensible limits."
 title: "PowerShell - Generate Unique UPN"
 excerpt: "Generate UPN candidates with configurable name formats, LDAP filter escaping and explicit limits on directory scope and concurrent provisioning."
 categories:

@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Read the plan first."
+feature_description: "Check Terraform updates, replacements and deletions before applying the change you reviewed."
 title: "Terraform: Read the Plan Before You Apply"
 date: 2026-11-20
 categories:

@@ -1,4 +1,7 @@
 ---
+featured: true
+feature_title: "Can you send me that script?"
+feature_description: "Turn a useful script into something another person can run without the author standing beside them."
 title: "From a Script to a Tool"
 date: 2026-11-07
 categories:

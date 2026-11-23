@@ -1,0 +1,45 @@
+{% comment %}
+Only explicitly featured, published posts available at build time enter the pool.
+Render three links without JavaScript; the browser rotates the selection daily.
+{% endcomment %}
+{% assign featured_posts = site.posts | where: 'featured', true | where_exp: 'post', 'post.published != false' | where_exp: 'post', 'post.date <= site.time' | sort: 'url' %}
+{% if featured_posts.size > 0 %}
+  {% assign featured_selection = '' | split: ',' %}
+  {% assign featured_topics = '' | split: ',' %}
+  {% for featured_post in featured_posts %}
+    {% assign featured_topic = featured_post.categories | first | default: 'Engineering' | downcase %}
+    {% unless featured_topics contains featured_topic %}
+      {% assign featured_selection = featured_selection | push: featured_post %}
+      {% assign featured_topics = featured_topics | push: featured_topic %}
+    {% endunless %}
+    {% if featured_selection.size == 3 %}{% break %}{% endif %}
+  {% endfor %}
+  {% if featured_selection.size < 3 %}
+    {% for featured_post in featured_posts %}
+      {% unless featured_selection contains featured_post %}
+        {% assign featured_selection = featured_selection | push: featured_post %}
+      {% endunless %}
+      {% if featured_selection.size == 3 %}{% break %}{% endif %}
+    {% endfor %}
+  {% endif %}
+  <section class="home-section" aria-labelledby="featured-heading">
+    <div class="home-section-heading">
+      <div>
+        <p class="home-eyebrow">A FEW GOOD STARTING POINTS</p>
+        <h2 id="featured-heading">From the workbench</h2>
+      </div>
+      <span class="home-section-note">Selected guides</span>
+    </div>
+    <div class="home-feature-grid" id="workbench-selection">
+      {% for featured_post in featured_selection %}
+        {% include home-feature-card.html post=featured_post position=forloop.index %}
+      {% endfor %}
+    </div>
+    <template id="workbench-pool">
+      {% for featured_post in featured_posts %}
+        {% include home-feature-card.html post=featured_post position=forloop.index %}
+      {% endfor %}
+    </template>
+  </section>
+  <script src="{{ '/assets/js/home-featured.js' | relative_url }}" defer></script>
+{% endif %}
