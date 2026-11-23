@@ -1,6 +1,6 @@
 ---
 title: "EC2: What Survives Stop and Terminate?"
-date: 2026-11-25
+date: 2026-11-26
 categories:
   - DevOps
 tags:
