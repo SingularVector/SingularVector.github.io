@@ -27,7 +27,19 @@ teaser                   : # path of fallback teaser image, e.g. "/assets/images
 # breadcrumbs            : false # true, false (default)
 words_per_minute         : 200
 comments:
-  provider               : false # false (default), "disqus", "discourse", "facebook", "google-plus", "staticman", "staticman_v2", "utterances", "custom"
+  provider               : "giscus"
+  giscus:
+    repo_id              : "MDEwOlJlcG9zaXRvcnkxNjM4ODQ3ODA="
+    category_name        : "Announcements"
+    category_id          : "DIC_kwDOCcSu7M4DL0XP"
+    discussion_term      : "pathname"
+    strict               : 1
+    reactions_enabled    : 1
+    emit_metadata        : 0
+    input_position       : "top"
+    theme                : "dark"
+    lang                 : "en"
+    lazy                 : true
   disqus:
     shortname            : PsCustomObject # https://help.disqus.com/customer/portal/articles/466208-what-s-a-shortname-
   discourse:
@@ -310,7 +322,7 @@ defaults:
       read_time: true
       share: true
       related: true
-      comments : false
+      comments: true
       toc: true
       toc_sticky: true
   # _pages

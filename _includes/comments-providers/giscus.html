@@ -1,34 +1,18 @@
-<script>
-  'use strict';
-
-  (function () {
-    var commentContainer = document.querySelector('#giscus-comments');
-
-    if (!commentContainer) {
-      return;
-    }
-
-    var script = document.createElement('script');
-
-    script.setAttribute('src', 'https://giscus.app/client.js');
-    script.setAttribute('data-repo', '{{ site.repository | downcase }}');
-    script.setAttribute('data-repo-id', '{{ site.comments.giscus.repo_id }}');
-    script.setAttribute('data-category', '{{ site.comments.giscus.category_name }}');
-    script.setAttribute('data-category-id', '{{ site.comments.giscus.category_id }}');
-    script.setAttribute('data-mapping', '{{ site.comments.giscus.discussion_term | default: "pathname" }}');
-    script.setAttribute('data-strict', '{{ site.comments.giscus.strict | default: 0 }}');
-    script.setAttribute('data-reactions-enabled', '{{ site.comments.giscus.reactions_enabled | default: 1 }}');
-    script.setAttribute('data-emit-metadata', '{{ site.comments.giscus.emit_metadata | default: 0 }}');
-    script.setAttribute('data-input-position', '{{ site.comments.giscus.input_position | default: "top" }}');
-    script.setAttribute('data-theme', '{{ site.comments.giscus.theme | default: "light" }}');
-    script.setAttribute('data-lang',  '{{ site.comments.giscus.lang | default: "en" }}');
-    {% if site.comments.giscus.lazy %}
-    script.setAttribute('data-loading', 'lazy');
-    {% endif %}
-    script.setAttribute('crossorigin', 'anonymous');
-
-    script.setAttribute('async', '');
-
-    commentContainer.appendChild(script);
-  })();
+{% if jekyll.environment == 'production' and site.comments.giscus.repo_id != blank and site.comments.giscus.category_id != blank %}
+<script src="https://giscus.app/client.js"
+        data-repo="{{ site.repository | escape }}"
+        data-repo-id="{{ site.comments.giscus.repo_id | escape }}"
+        data-category="{{ site.comments.giscus.category_name | escape }}"
+        data-category-id="{{ site.comments.giscus.category_id | escape }}"
+        data-mapping="{{ site.comments.giscus.discussion_term | default: 'pathname' | escape }}"
+        data-strict="{{ site.comments.giscus.strict | default: 1 }}"
+        data-reactions-enabled="{{ site.comments.giscus.reactions_enabled | default: 1 }}"
+        data-emit-metadata="{{ site.comments.giscus.emit_metadata | default: 0 }}"
+        data-input-position="{{ site.comments.giscus.input_position | default: 'top' | escape }}"
+        data-theme="{{ site.comments.giscus.theme | default: 'dark' | escape }}"
+        data-lang="{{ site.comments.giscus.lang | default: 'en' | escape }}"
+        {% if site.comments.giscus.lazy %}data-loading="lazy"{% endif %}
+        crossorigin="anonymous"
+        async>
 </script>
+{% endif %}
