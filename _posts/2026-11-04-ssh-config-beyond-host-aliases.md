@@ -16,7 +16,7 @@ You know the connection command. Or at least you knew it last week.
 
 There was a different username, a particular key, and a jump server somewhere in the middle. The terminal history will have it. Probably between three commands that almost worked :)
 
-In [SSH Connection Manager in Command Line]({{ '/linux/howto/ssh-connection-manager/' | relative_url }}), we made connections easier to remember. Now let’s choose the right key, reach internal hosts and inspect SSH’s decisions before blaming the network.
+In [SSH Connection Manager in Command Line]({% post_url 2024-09-20-SSH-Connection-Manager %}), we made connections easier to remember. Now let’s choose the right key, reach internal hosts and inspect SSH’s decisions before blaming the network.
 
 These OpenSSH examples target Linux and macOS. Replace the example addresses and key paths with your own; the corresponding public keys must already be authorised on the servers. Configuration cannot arrange access by itself, however nicely you indent it.
 
@@ -211,4 +211,4 @@ That is a much better use of a configuration file than making terminal history y
 
 - [OpenSSH client configuration manual](https://man.openbsd.org/ssh_config)
 - [OpenSSH client command manual](https://man.openbsd.org/ssh)
-- [SSH Connection Manager in Command Line]({{ '/linux/howto/ssh-connection-manager/' | relative_url }})
+- [SSH Connection Manager in Command Line]({% post_url 2024-09-20-SSH-Connection-Manager %})

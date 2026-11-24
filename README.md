@@ -1,3 +1,9 @@
+## Search discovery checks
+
+`scripts/check-site-discovery.py` checks a built site for broken internal page links, including letter-case mismatches, and validates the sitemap against the generated pages and their canonical/noindex metadata. It runs in the existing Pages validation workflow.
+
+Search, 404, synthetic reports and the Google verification file are utility resources rather than search landing pages. They remain accessible, but are excluded from the sitemap where appropriate. Keep the published sample report's `noindex, follow` meta tag when regenerating it from the source exporter. Changes to enabled services should also be reflected in the privacy page.
+
 ## Working on this blog
 
 Read [AGENTS.md](AGENTS.md) for repository instructions and [EDITORIAL_GUIDE.md](EDITORIAL_GUIDE.md) for the writing voice, article selection, publication workflow and discovery conventions. The editorial guide is also the portable file to upload to another chat. Keep these repository copies current; uploaded copies need replacing when the rules change. Both files are excluded from the generated site.

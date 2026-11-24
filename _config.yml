@@ -315,6 +315,15 @@ collections:
 
 # Defaults
 defaults:
+  # Public utility files stay accessible but are not search landing pages.
+  - scope:
+      path: "assets/reports/**"
+    values:
+      sitemap: false
+  - scope:
+      path: "googlea49631859f2e1ea8.html"
+    values:
+      sitemap: false
   # _posts
   - scope:
       path: ""

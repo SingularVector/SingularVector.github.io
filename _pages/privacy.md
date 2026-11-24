@@ -4,9 +4,10 @@ description: "How SingularVector handles personal data, analytics and advertisin
 permalink: /privacy/
 toc: true
 published: true
+last_modified_at: 2026-11-24
 ---
 
-Last updated: 3 November 2026
+Last updated: 24 November 2026
 
 ## Who operates this site
 
@@ -18,7 +19,11 @@ For privacy questions or requests, contact [singularvector@tuta.com](mailto:sing
 
 The website is hosted on GitHub Pages. When you visit, your browser sends technical information needed to deliver the pages, including your IP address and the requested resource. GitHub records visitor IP addresses for security purposes. GitHub processes hosting and security information under its [privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 
-This blog does not offer visitor accounts or an enabled commenting system. Links to GitHub, LinkedIn and other websites take you to services governed by their own privacy notices.
+Comments use [giscus](https://giscus.app/), which stores discussions on GitHub. You can read comments without signing in. To post through the widget, sign in with your GitHub account and authorise the giscus app; this blog does not create a separate account for you.
+
+Comments are public, alongside your GitHub identity. When the widget loads, your browser connects to giscus and GitHub to retrieve the discussion. Their services receive the connection information needed to deliver it. See the [giscus privacy policy](https://github.com/giscus/giscus/blob/main/PRIVACY-POLICY.md) and [GitHub privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement) for their processing. Avoid posting credentials or other information you would not want to make public.
+
+Links to GitHub, LinkedIn and other websites take you to services governed by their own privacy notices.
 
 ## Analytics
 
@@ -46,7 +51,7 @@ I keep correspondence while it is needed to resolve your enquiry and retain any 
 
 ## Service providers and international processing
 
-GitHub, Google and Tuta receive data in connection with the services described above. Their infrastructure and service providers can involve processing outside Switzerland, including in the United States. Their linked privacy notices describe their processing and international transfer arrangements. Processing abroad can involve different data protection rules from those in Switzerland.
+GitHub, giscus, Google and Tuta receive data in connection with the services described above. Their infrastructure and service providers can involve processing outside Switzerland, including in the United States. Their linked privacy notices describe their processing and international transfer arrangements. Processing abroad can involve different data protection rules from those in Switzerland.
 
 ## Your rights
 
