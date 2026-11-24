@@ -1,6 +1,6 @@
 ---
 title: "LogScanner: Making PowerShell Automation Logs Easier to Search"
-excerpt: "Why I built a small Go CLI to search New-LogEntry logs by severity, message and time, with traceable results and JSON Lines output."
+excerpt: "Follow a timeout search through synthetic New-LogEntry logs with LogScanner, keeping every match tied to its source and checking what an empty result means."
 date: 2026-11-24 08:00:00 +0100
 categories:
   - PowerShell
@@ -17,29 +17,21 @@ toc: true
 
 ## Writing the logs was only half the job
 
-In [PowerShell Logging: New-LogEntry Revisited](/powershell/howto/PowerShell-New-LogEntry-Revised/), I went through the changes to my logging function: predictable output, buffering, coordinated file writes and optional secret redaction.
+I've used `New-LogEntry` in scripts and automations for years. It gives me a consistent record of what happened, but investigating failures still meant opening files in a text editor and searching manually.
 
-That dealt with getting useful information into a file. Finding it again was still a separate job.
+That works. It becomes rather less enjoyable when the question involves several files, a particular severity and a time window. The information is there; finding it again should not become another job.
 
-I've used `New-LogEntry` in scripts and automations for years. Investigating failures across those logs meant opening files in a text editor and searching manually. That works, but it becomes repetitive when the question involves several files, a particular severity and a specific time window.
+I built [LogScanner](https://github.com/SingularVector/LogScanner) to make those searches repeatable, with every result tied to its original file and line. My [New-LogEntry article]({{ '/powershell/howto/PowerShell-New-LogEntry-Revised/' | relative_url }}) covers writing the logs. Here, let's ask something of them.
 
-I built [LogScanner](https://github.com/SingularVector/LogScanner) to make that investigation repeatable from the command line, while keeping every result tied to the file and line it came from.
+## Start with a question, and two small files
 
-## Why a separate tool?
+Suppose we want to find **timeout warnings or errors recorded on 5 October**, then inspect the surrounding entries. This is a worked example using the repository's **synthetic logs**, not an account of a production incident.
 
-PowerShell already has `Select-String`, and Linux has perfectly useful tools for searching text. For a quick search, those are often enough.
+PowerShell already has `Select-String`, which is often enough for a quick search. What I wanted here was a severity filter that reads the severity field, a time filter that compares timestamps, and a message search that does not accidentally match the prefix.
 
-What I wanted here was a tool that understands the structure of the logs my function produces. A severity filter should inspect the severity field. A time filter should compare parsed timestamps. A message search should examine the message rather than accidentally matching something in its prefix.
+LogScanner is a small Go CLI using the standard library. There is no database or background service. Building it requires **Go 1.23 or later**; the compiled executable needs neither Go, PowerShell nor .NET on the machine running it.
 
-LogScanner is a small Go CLI built using the standard library. It reads local files, applies filters and writes results to the terminal or to another command. There is no database or background service to configure, and a compiled executable does not need PowerShell, .NET or Go installed on the machine running it.
-
-It understands one log format. That keeps the scope manageable and the behavior explicit.
-
-## Start with the included examples
-
-The repository includes synthetic logs generated with `New-LogEntry`, so you can try the tool without supplying production data.
-
-To build from source, you need Go 1.23 or later:
+From a terminal:
 
 ```sh
 git clone https://github.com/SingularVector/LogScanner.git
@@ -48,100 +40,60 @@ go build -o bin/logscanner ./cmd/logscanner
 ./bin/logscanner summary --recursive ./examples/logs
 ```
 
-On Windows, build and run the executable from PowerShell:
+On Windows, build with `go build -o bin/logscanner.exe ./cmd/logscanner` and invoke `.\bin\logscanner.exe` instead. The remaining commands use the Linux/macOS spelling, from the repository root. Paths in the output use the operating system's separators.
 
-```powershell
-go build -o bin/logscanner.exe ./cmd/logscanner
-.\bin\logscanner.exe summary --recursive .\examples\logs
+The sample summary reports two files, twelve parsed entries, no malformed lines and no read errors. Five entries have `ERROR` severity. That gives us a small collection we can inspect ourselves before pointing the tool at anything larger.
+
+## Narrow the search
+
+Ask our question directly:
+
+```sh
+./bin/logscanner scan --recursive --min-level warning --contains timeout --ignore-case --since 2026-10-05T00:00:00 --until 2026-10-05T23:59:59 ./examples/logs
 ```
 
-The recursive summary of the bundled samples is:
+There are several flags, but they express one request: include subdirectories, keep warnings and errors, look for “timeout” regardless of case, and restrict the recorded date. Put flags before the file or directory paths.
+
+The bundled samples produce two matches:
 
 ```text
-Files: 2
-Parsed entries: 12
-Matches: 12
-Malformed lines: 0
-Read errors: 0
-INFO: 4
-WARNING: 2
-ERROR: 5
-UNSPECIFIED: 1
+[10/05/2026 10:18:49 PM] - [WARNING]: Connection timeout; retrying | File: examples/logs/application.log | Line: 3
+[10/05/2026 10:18:49 PM] - [WARNING]: Worker TIMEOUT | File: examples/logs/nested/worker.log | Line: 2
 ```
 
-For the remaining examples, I'm using `./bin/logscanner` from the repository root. On Windows, use `.\bin\logscanner.exe` instead. If you put the executable on your `PATH`, you can call it as `logscanner`.
+`--min-level warning` includes `WARNING` and `ERROR`; `--level error` would select only `ERROR`. All supplied filters must match. Neither line above is an error entry, but both deserve a look when investigating a timeout.
 
-## Find the errors, then narrow the question
+Both time bounds are inclusive. A date alone means midnight: `--until 2026-10-05` would exclude these late-evening entries. A small detail, and a convincing way to get an empty report :)
 
-Start with errors across the example directory and its subdirectories:
+The source timestamps have no timezone. Filters compare the recorded wall-clock values without conversion and reject timezone-bearing arguments. Searching several servers' logs does not automatically put them on the same timeline.
 
-```sh
-./bin/logscanner scan --recursive --level error ./examples/logs
-```
+## Follow the match back to its context
 
-One of the matching lines looks like this:
+The worker result points to line 2 of `examples/logs/nested/worker.log`. Open that file and the surrounding entries are straightforward:
 
 ```text
-[10/05/2026 10:18:49 PM] - [ERROR]: Connection refused | File: examples/logs/application.log | Line: 4
+[10/05/2026 10:18:49 PM] - [INFO]: Worker started
+[10/05/2026 10:18:49 PM] - [WARNING]: Worker TIMEOUT
+[10/05/2026 10:18:49 PM] - [ERROR]: Worker failed
 ```
 
-The original entry remains readable, with its source path and one-based line number attached. You can go back to the surrounding entries when the matching line alone doesn't explain the failure. Path separators follow the operating system.
+The timeout search did not return “Worker failed”, because that message does not contain “timeout”. It did give us the place to look next.
 
-For a more specific question, look for timeouts at warning severity or above:
+That distinction matters more with real logs. A matching entry is a lead, not a diagnosis. These synthetic entries share a timestamp and contain no job identifiers, so they cannot demonstrate timing, establish a cause or reliably connect separate jobs. A search tool cannot recover context the automation never recorded.
+
+## Keep the result useful
+
+To pass those same matches to another tool, add `--output jsonl`:
 
 ```sh
-./bin/logscanner scan --recursive --min-level warning --contains timeout --ignore-case ./examples/logs
+./bin/logscanner scan --recursive --min-level warning --contains timeout --ignore-case --since 2026-10-05T00:00:00 --until 2026-10-05T23:59:59 --output jsonl ./examples/logs > timeouts.jsonl
 ```
 
-That matches two entries in the bundled samples. All supplied filters must match, and the text filter applies to the message itself.
+Each line is a JSON object with the timestamp, severity, message, source file, line number and original text. We can process the result without scraping the terminal display, and still return to the source. The timestamp retains its original format; it does not imply UTC.
 
-`--level error` means exactly `ERROR`. `--min-level warning` includes `WARNING` and `ERROR`. Entries written without a severity tag are classified as `UNSPECIFIED` and excluded by minimum-severity filters.
+An empty result needs more care. LogScanner sends results to standard output and diagnostics to standard error. Malformed lines are skipped and counted; read failures are reported. Add `--strict` when malformed input should make the command fail.
 
-Place flags before file or directory paths. You can also pass several paths, or use `--include "worker-*.log"` when discovering files in directories. Quote the pattern so the shell doesn't expand it first.
-
-## Restrict the time window
-
-This example selects errors recorded during 5 October 2026:
-
-```sh
-./bin/logscanner scan --recursive --level error --since 2026-10-05T00:00:00 --until 2026-10-05T23:59:59 ./examples/logs
-```
-
-Both bounds are inclusive. A date without a time means midnight, so `--until 2026-10-05` does **not** include the whole of that day.
-
-There is another limitation inherited from the source format: its timestamps do not contain a timezone. LogScanner compares the recorded wall-clock values without converting them, and rejects timezone-bearing filter arguments. It cannot automatically align logs written in different timezones.
-
-## Keep the output useful outside the terminal
-
-Readable output is useful while investigating. For further processing, JSON Lines avoids having to parse the display format again:
-
-```sh
-./bin/logscanner scan --recursive --level error --output jsonl ./examples/logs > errors.jsonl
-```
-
-Each matching entry becomes one JSON object with a timestamp, severity, message, source file, line number and the original log text. The timestamp remains in its source format; it does not imply UTC.
-
-If you only need counts, use `summary`:
-
-```sh
-./bin/logscanner summary --recursive --level error ./examples/logs
-```
-
-For the bundled samples, that reports twelve parsed entries and five matches. Severity counts describe the matching entries; the parsed-entry count includes every entry successfully parsed during the scan.
-
-## A clean result needs a clean scan
-
-An empty search result is only useful if the files were actually read successfully.
-
-LogScanner sends results to standard output and diagnostics to standard error. Malformed lines are skipped and counted. File read failures are also reported, while scanning continues through other files where possible.
-
-Use `--strict` when malformed input should make the command fail:
-
-```sh
-./bin/logscanner scan --recursive --strict --level error ./examples/logs
-```
-
-The executable uses these exit codes:
+The compiled executable returns:
 
 | Code | Meaning |
 | --- | --- |
@@ -149,30 +101,14 @@ The executable uses these exit codes:
 | `1` | No matches, with no fatal errors |
 | `2` | Invalid arguments, discovery/read/output failure, or malformed lines with `--strict` |
 
-Finding an `ERROR` entry therefore does not itself produce exit code `2`. The code describes the search outcome, not the health of the automation that wrote the log.
+Finding an `ERROR` entry does not itself produce code `2`: the code describes the search outcome, not the health of the automation. If a wrapper only keeps standard output, it can lose the very explanation needed to interpret an empty file. Use the compiled executable when checking these codes; `go run` wraps nonzero exits.
 
-Use the compiled executable when handling these codes in scripts. `go run` wraps nonzero program exits.
+## Know what the files can tell us
 
-## Boundaries worth knowing
+The supported input is the current `New-LogEntry` format in UTF-8, with `MM/dd/yyyy` dates and a 12-hour clock. Historical variants, localised timestamps and UTF-16 files need compatibility checks. Untagged entries become `UNSPECIFIED` and are excluded by minimum-severity filters.
 
-The supported format is the timestamped UTF-8 output of the current `New-LogEntry` formatter:
+Each physical line is a separate entry, including lines from a multiline message. Results retain source order rather than a global timestamp sort. The tool reads incrementally, but does not tail live logs or read compressed archives. The [repository documentation](https://github.com/SingularVector/LogScanner#usage) covers the other filters and options.
 
-```text
-[10/05/2026 10:18:49 PM] - [ERROR]: Connection refused
-```
+For our small investigation, we have two timeout warnings and know exactly where to inspect them. That is the useful outcome: less time hunting through files, with enough traceability to check what a result actually means.
 
-The date is `MM/dd/yyyy`, with a 12-hour clock and AM/PM marker. Older variants, localized timestamps and UTF-16 files need compatibility checks; LogScanner does not support those formats automatically.
-
-Multiline messages are another detail carried over from the logger. `New-LogEntry` prefixes each physical line separately, and LogScanner treats each as an independent entry. The file doesn't record enough information to reconstruct the original message grouping.
-
-The reader processes input incrementally, including lines larger than 64 KiB. It does not load the whole log into memory. Results retain source order rather than being globally sorted by timestamp, and the current version works with local, uncompressed files. It does not tail live logs or read compressed archives.
-
-The repository has automated tests and CI covering Windows, Linux and macOS, including parsing, filtering, JSON output and executable exit behavior. That matters for a tool whose usefulness depends on giving the same answer to the same question.
-
-## Where it fits
-
-`New-LogEntry` gives my automations a consistent way to record what happened. LogScanner gives me a repeatable way to ask questions of those records afterwards.
-
-If you're already using the revised logging function, the [LogScanner repository](https://github.com/SingularVector/LogScanner) includes the source, sample logs and full command reference. Try the samples first, then check a representative file from your own automation before scanning a larger collection.
-
-Testing and feature requests are always welcome so drop me a line and I will be happy reply back or implement it!
+Try the bundled samples first, then a representative log from your own automation. Testing and feature requests are welcome; drop me a line or leave a comment, and I will be happy to take a look.

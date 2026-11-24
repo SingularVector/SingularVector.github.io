@@ -1,6 +1,7 @@
 ---
 title: "Git Fetch vs Pull vs Push"
 date: 2026-10-27
+last_modified_at: 2026-11-24
 categories:
   - git
   - version-control
@@ -18,9 +19,19 @@ You commit a change, open GitHub, and it isn’t there. Or you edit a file on Gi
 
 It is easy to look at either situation and wonder whether Git missed something. Usually, nothing has gone wrong. There are two repositories involved, and they have not exchanged those changes yet.
 
-That is where `fetch`, `pull` and `push` come in. The names are short; the confusion they cause can last for a long time. Let’s work through what each command actually does, using the same sort of small configuration change we used in the [branches article](https://singularvector.github.io/git/version-control/getting-started-with-git-branches/).
+That is where `fetch`, `pull` and `push` come in. The names are short; the confusion they cause can last for a long time. Let’s work through what each command actually does, using the same sort of small configuration change we used in the [branches article]({{ '/git/version-control/getting-started-with-git-branches/' | relative_url }}).
 
-These examples assume a normal clone, a branch called `main` tracking `origin/main`, and a clean working tree. Use `git status` before changing branches or integrating work. Commit or stash unfinished changes first.
+Here is the distinction we will use throughout:
+
+| Command | What it updates | Does it change your working files? | Use it when… |
+| --- | --- | --- | --- |
+| `git fetch origin` | Downloads remote objects and updates local remote-tracking references | No | You want to inspect remote changes first |
+| `git pull --ff-only` | Fetches, then advances your current branch if a fast-forward is possible | Yes, if the branch advances | You want to bring in remote work without a merge commit or rebase |
+| `git push` | Sends committed history and asks the remote to update its branch | No | You want to share your local commits |
+
+A plain `git pull` can integrate differently depending on your options and configuration. We use `--ff-only` deliberately below; it stops if the histories have diverged.
+
+The examples assume a normal clone, a branch called `main` tracking `origin/main`, and a clean working tree. The diagrams and sample history illustrate that setup; commit hashes are examples. If you want to follow along, use a disposable repository and a remote you control, rather than a shared project's `main`. Use `git status` before changing branches or integrating work. Commit or stash unfinished changes first.
 
 ---
 
