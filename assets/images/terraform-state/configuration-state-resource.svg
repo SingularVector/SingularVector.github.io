@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc">
+  <title id="title">Configuration, state and the actual file can disagree</title>
+  <desc id="desc">After manual deletion, configuration still requests note.txt and state still records local_file.note. The local provider finds the actual file missing. A normal plan proposes creating the file again; planning does not recreate it.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 Z" fill="#64748b"/></marker></defs>
+  <style>text{font-family:Arial,sans-serif;fill:#172033}.title{font-size:32px;font-weight:700}.heading{font-size:27px;font-weight:700}.body{font-size:24px}.code{font-family:monospace;font-size:25px}.small{font-size:22px}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  <rect width="1200" height="600" rx="20" fill="#f8fafc"/>
+  <text x="45" y="65" class="title">Deleting the file does not edit the configuration or state</text>
+  <text x="45" y="110" class="small">Disposable local-file lab, immediately after manually removing note.txt.</text>
+  <rect x="45" y="160" width="340" height="190" rx="14" fill="#eff6ff" stroke="#cbd5e1"/>
+  <text x="70" y="205" class="heading">Configuration</text>
+  <text x="70" y="260" class="code">local_file.note</text>
+  <text x="70" y="315" class="body">Requests note.txt</text>
+  <rect x="430" y="160" width="340" height="190" rx="14" fill="#f0fdf4" stroke="#cbd5e1"/>
+  <text x="455" y="205" class="heading">State snapshot</text>
+  <text x="455" y="260" class="code">local_file.note</text>
+  <text x="455" y="315" class="body">Association still recorded</text>
+  <rect x="815" y="160" width="340" height="190" rx="14" fill="#fff7ed" stroke="#cbd5e1"/>
+  <text x="840" y="205" class="heading">Actual file</text>
+  <text x="840" y="260" class="code">note.txt</text>
+  <text x="840" y="315" class="body">Missing on disk</text>
+  <path d="M215 360 V405 H480 V430 M600 360 V430 M985 360 V405 H720 V430" class="line"/>
+  <rect x="350" y="440" width="500" height="80" rx="14" fill="#fff" stroke="#cbd5e1"/>
+  <text x="380" y="490" class="heading">Normal plan: create note.txt again</text>
+  <text x="45" y="565" class="body">Provider refresh detects the missing file. Applying is a separate step.</text>
+</svg>

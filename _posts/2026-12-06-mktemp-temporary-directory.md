@@ -14,7 +14,7 @@ description: "Create a private temporary directory with mktemp, understand its f
 
 A script needs somewhere to unpack an archive or prepare a report. `/tmp/report` sounds reasonable, until another run uses the same directory. Or yesterday's files are still there, patiently waiting to become today's input.
 
-We could keep inventing directory names. There is a command for that already :)
+We could keep inventing directory names, but there is a command for that already :)
 
 ## Let mktemp Create It
 
