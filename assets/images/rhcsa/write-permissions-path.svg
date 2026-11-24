@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc">
+  <title id="title">A writable file behind a directory without search permission</title>
+  <desc id="desc">For the ordinary owner in this lab, the private lab directory permits traversal. The logs directory has mode 600 and lacks search permission, so lookup stops before app.log. Mode 600 on app.log grants owner write permission, but cannot make the blocked path accessible.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 Z" fill="#64748b"/></marker>
+  </defs>
+  <style>text{font-family:Arial,sans-serif;fill:#172033}.title{font-size:32px;font-weight:700}.heading{font-size:27px;font-weight:700}.body{font-size:24px}.code{font-family:monospace;font-size:27px}.small{font-size:22px}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  <rect width="1200" height="600" rx="20" fill="#f8fafc"/>
+  <text x="45" y="65" class="title">The path must be accessible before the file can be opened</text>
+  <text x="45" y="110" class="small">Ordinary owner permissions in our lab; no privilege bypass or extra access rules.</text>
+  <rect x="45" y="175" width="300" height="215" rx="14" fill="#f0fdf4" stroke="#cbd5e1"/>
+  <text x="70" y="225" class="heading">lab/</text>
+  <text x="70" y="275" class="code">700 · rwx------</text>
+  <text x="70" y="335" class="body">Search allowed</text>
+  <path d="M350 285 H425" class="line"/>
+  <rect x="435" y="175" width="300" height="215" rx="14" fill="#fff7ed" stroke="#cbd5e1"/>
+  <text x="460" y="225" class="heading">logs/</text>
+  <text x="460" y="275" class="code">600 · rw-------</text>
+  <text x="460" y="335" class="body">No search permission</text>
+  <path d="M740 285 H815" stroke="#94a3b8" stroke-width="3" stroke-dasharray="8 7"/>
+  <rect x="825" y="175" width="330" height="215" rx="14" fill="#eff6ff" stroke="#cbd5e1"/>
+  <text x="850" y="225" class="heading">app.log</text>
+  <text x="850" y="275" class="code">600 · rw-------</text>
+  <text x="850" y="335" class="body">Owner write allowed</text>
+  <path d="M585 400 V445" stroke="#c2410c" stroke-width="3"/>
+  <text x="435" y="485" class="heading">Lookup stops here.</text>
+  <text x="45" y="555" class="body">The file's write bit cannot compensate for missing directory search permission.</text>
+</svg>
