@@ -8,7 +8,7 @@ These instructions apply throughout this repository. Before writing, revising or
 - Work in the repository. ZIP files, screenshots and snippets are derived outputs; they do not establish that an implementation has changed.
 - Preserve unrelated work and user edits. Read the actual article and relevant implementation before describing either. Do not rely on a previous chat's snapshot for current project status.
 - Keep changes focused. Prefer the existing theme, data files and static-site capabilities over new services, dependencies or infrastructure.
-- Do not commit, push, deploy or publish unless the user explicitly requests that action for this blog task. Preparation, approval to revise and a proposed date do not by themselves authorise a push.
+- Do not commit, push, deploy or publish unless the user explicitly authorises that specific action for the current task. This applies to every change, including configuration, workflows and documentation. Requests to implement, fix or prepare changes do not authorise a commit; leave changes uncommitted for the user to review. Permission to commit does not by itself authorise pushing, deploying or publishing.
 
 ## Editorial essentials
 
@@ -30,6 +30,8 @@ These instructions apply throughout this repository. Before writing, revising or
 ## Code and visuals
 
 - Prefer readable examples: four spaces, no tabs; braces on their own lines, including single-statement blocks; aligned equals signs in PowerShell splats/hashtables; blank lines between logical steps; comments explaining decisions and non-obvious behaviour. Prefer `switch` over chained `if`/`elseif` where it improves clarity.
+- Prefer splatted PowerShell commands, especially when passing several parameters. Use descriptive splat names, aligned equals signs and one parameter per line so calls are easy to read and maintain.
+- Readability is a primary requirement. Comment code generously to explain its purpose, logical steps, assumptions and decisions, including in article examples and companion scripts. Keep comments useful and accurate as the code changes; favour clarity over clever shortcuts or compressed code.
 - Keep examples short in the article. Put long runnable companions under `assets/code/` or link to the maintained source repository.
 - Use informative SVG diagrams when they clarify a concept. Match the restrained site palette, provide useful alt text and inspect the rendered result. Do not add decorative images just to fill space.
 
