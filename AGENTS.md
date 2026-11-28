@@ -22,7 +22,7 @@ These instructions apply throughout this repository. Before writing, revising or
 ## Publication and links
 
 - Default new work to an unpublished draft. Follow an explicitly requested file location; otherwise use `_drafts/`. A draft stored in `_posts/` must have `published: false` until scheduling/publication is authorised.
-- For approved dated posts, use the existing `YYYY-MM-DD-descriptive-slug.md` convention and matching front-matter date. Respect the requested date and existing publishing workflow; do not create a scheduled task just to publish an article.
+- For approved dated posts, use the existing `YYYY-MM-DD-descriptive-slug.md` convention and matching front-matter date in Europe/Zurich. The existing Pages workflow rebuilds daily; use that workflow for publishing rather than creating separate per-article tasks. See README.md for manual dispatch and deployment checks.
 - Preserve published filenames, categories, permalinks and canonical URLs unless changing them is explicitly in scope. These fields can define URLs. Topic labels can be improved without recategorising old posts.
 - Use `relative_url` for local assets and site links. Only use `post_url` when the target is available in that build; future/draft references need publication-aware resolution.
 - Do not imply that renamed, dated or locally prepared files have been deployed. Distinguish a successful build, live deployment, crawling and indexing.

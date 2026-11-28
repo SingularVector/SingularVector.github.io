@@ -1,10 +1,18 @@
-name: Validate GitHub Pages build
+name: Build and publish GitHub Pages
 
 on:
   pull_request:
   push:
     branches: [master, upgrade/minimal-mistakes-4.28.1, design/homepage-preview, navigation/topic-hub, content/seo-positioning, content/technical-freshness, content/string-encryption-article, migration/singularvector]
   workflow_dispatch:
+  schedule:
+    # Before the Swiss morning: 04:17 CET / 05:17 CEST.
+    - cron: '17 3 * * *'
+
+# Keep production deployments in order; PR validation has its own ref/group.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -12,13 +20,17 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Build using GitHub Pages tooling
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./
           destination: ./_site
+          future: false
       - name: Check theme and monetization integration
         shell: bash
         run: |
@@ -45,3 +57,23 @@ jobs:
           name: validated-jekyll-site
           path: _site/
           retention-days: 7
+      - name: Package validated site for Pages
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site/
+
+  deploy:
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy validated site
+        id: deployment
+        uses: actions/deploy-pages@v5

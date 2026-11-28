@@ -106,6 +106,8 @@ Draft first unless the user explicitly requests publication preparation. Use the
 
 An approved scheduled article uses `YYYY-MM-DD-descriptive-slug.md` and the same date in front matter. Preserve requested dates. Follow the site's existing build/deployment process rather than creating a new scheduling service or task.
 
+Publication dates use Europe/Zurich. The repository's Pages workflow rebuilds daily and deploys only validated output from master; a future date becomes eligible during a build, rather than triggering one itself. Keep `published: false` until scheduling is approved. See README.md for the daily schedule and fresh manual runs; do not create separate per-article automations.
+
 Preserve an existing article's filename, categories, permalink and canonical URL during editorial changes. On this site categories can affect the URL. Do not rename old posts or change domains to make wording look tidier. Update modification dates only for actual substantive revisions, not as a freshness trick.
 
 The user normally handles commits, pushes and Jekyll builds. Leave work ready for review, state what was checked, and do not claim it is published until deployment is verified. Perform those actions only when explicitly requested for the current task.

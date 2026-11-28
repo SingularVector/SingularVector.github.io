@@ -1,3 +1,13 @@
+## Building and publishing
+
+GitHub Pages uses **GitHub Actions** as its publishing source. `.github/workflows/validate-pages.yml` builds with the existing Pages tooling, runs the content and link checks, and deploys that same validated output. Only `master` deploys; pull requests and the other configured branches are validation-only.
+
+The workflow runs on pushes, by manual dispatch and daily at **03:17 UTC** (04:17 CET / 05:17 CEST). GitHub can delay scheduled runs, and disables scheduled workflows in public repositories after 60 days without repository activity. Check Actions if a scheduled post is missing.
+
+Article dates use **Europe/Zurich**. An approved post in `_posts/` becomes eligible on its front-matter date; `published: false` keeps a draft unpublished regardless of its filename. The daily rebuild makes newly eligible posts available without another commit. Keep future-post inclusion disabled.
+
+For a fresh manual publication, open **Actions → Build and publish GitHub Pages → Run workflow**, selecting `master`. This builds the latest source. Re-running an older run uses that run's original source revision. A successful validation on a non-production branch does not publish the site.
+
 ## Search discovery checks
 
 `scripts/check-site-discovery.py` checks a built site for broken internal page links, including letter-case mismatches, and validates the sitemap against the generated pages and their canonical/noindex metadata. It runs in the existing Pages validation workflow.
